@@ -17,7 +17,7 @@ async function init() {
 
     app.use(bodyParser.json());
 
-    const PORT = env.PORT;
+    const { PORT } = env;
 
     app.get("/", (req, res) => {
       res.status(200).json({
