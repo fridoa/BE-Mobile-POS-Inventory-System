@@ -36,4 +36,4 @@ const authorization = async (req: IAuthRequest, res: Response, next: NextFunctio
   next();
 };
 
-export { validateLogin, authorization };
+export default { validateLogin, authorization };
