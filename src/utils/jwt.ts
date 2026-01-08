@@ -17,7 +17,7 @@ export const generateAuthTokens = (payload: ITokenPayload) => {
   };
 
   const accessToken = signToken(tokenPayload, env.JWT_ACCESS_SECRET, env.JWT_ACCESS_EXPIRES_IN);
-  const refreshToken = signToken(tokenPayload, env.JWT_ACCESS_SECRET, env.JWT_REFRESH_SECRET);
+  const refreshToken = signToken(tokenPayload, env.JWT_REFRESH_SECRET, env.JWT_REFRESH_EXPIRES_IN || "7d");
 
   return { accessToken, refreshToken };
 };
@@ -32,7 +32,7 @@ export const verifyAccessToken = (token: string) => {
 
 export const verifyRefreshToken = (token: string) => {
   try {
-    return jwt.verify(token, env.JWT_ACCESS_SECRET) as ITokenPayload;
+    return jwt.verify(token, env.JWT_REFRESH_SECRET) as ITokenPayload;
   } catch (error) {
     return null;
   }

@@ -1,7 +1,10 @@
 import express from "express";
-import dummyController from "../controllers/dummy.controller";
+import authMiddleware from "../middlewares/auth.middleware";
+import authController from "../controllers/auth.controller";
 
 const router = express.Router();
-router.get("/dummy", dummyController.dummy);
+router.post("/auth/login", authMiddleware.validateLogin, authController.loginController);
+router.post("/auth/refresh-token", authController.refreshTokenController);
+router.get("/auth/profile", authMiddleware.authorization, authController.getProfileController);
 
 export default router;

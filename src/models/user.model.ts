@@ -23,6 +23,11 @@ const UserSchema = new Schema<IUser>(
       enum: [ROLES.ADMIN, ROLES.KASIR],
       required: true,
     },
+    refreshToken: {
+      token: String,
+      previousToken: String,
+      lastRotatedAt: Date,
+    }
   },
   { timestamps: true }
 );
