@@ -2,7 +2,7 @@ import UserModel from "../models/user.model";
 import { ITokenPayload } from "../utils/interfaces";
 import { generateAuthTokens, verifyRefreshToken } from "../utils/jwt";
 import { verifyPassword } from "../utils/password";
-import { TLogin } from "../validators/auth.validate";
+import { TChangePassword, TLogin } from "../validators/auth.validate";
 import createHttpError from "http-errors";
 import { GRACE_PERIOD_SECONDS } from "../utils/constants";
 
@@ -84,4 +84,22 @@ async function refreshTokenService(sentToken: string) {
   throw new createHttpError.Unauthorized("Refresh token has been revoked. Please log in again.");
 }
 
-export default { loginService, refreshTokenService };
+async function changePasswordService(userId: string, passwordData: TChangePassword) {
+  const { oldPassword, newPassword } = passwordData;
+
+  const user = await UserModel.findById(userId).select("+password");
+  if (!user) {
+    throw new createHttpError.NotFound("User not found");
+  }
+
+  const isOldPasswordValid = await verifyPassword(oldPassword, user.password);
+  if (!isOldPasswordValid) {
+    throw new createHttpError.Unauthorized("Old password is incorrect");
+  }
+
+  user.password = newPassword;
+  user.refreshToken = { token: "", previousToken: "", lastRotatedAt: undefined };
+  await user.save();
+}
+
+export default { changePasswordService, loginService, refreshTokenService };

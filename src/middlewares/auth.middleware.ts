@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { loginSchema } from "../validators/auth.validate";
+import { changePasswordSchema, loginSchema } from "../validators/auth.validate";
 import { error } from "../utils/response";
 import { IAuthRequest } from "../utils/interfaces";
 import { verifyAccessToken } from "../utils/jwt";
@@ -36,4 +36,13 @@ const authorization = async (req: IAuthRequest, res: Response, next: NextFunctio
   next();
 };
 
-export default { validateLogin, authorization };
+const validateChangePassword = async (req: IAuthRequest, res: Response, next: NextFunction) => {
+  try {
+    await changePasswordSchema.validate(req.body, { abortEarly: false });
+    next();
+  } catch (err) {
+    error(res, err, "Invalid change password data");
+  }
+};
+
+export default { validateLogin, authorization, validateChangePassword };
