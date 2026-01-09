@@ -8,6 +8,8 @@ import { userSchema, userUpdateSchema } from "../validators/user.validate";
 import userController from "../controllers/user.controller";
 import { categorySchema } from "../validators/category.validate";
 import categoryController from "../controllers/category.controller";
+import { productSchema, productUpdateSchema } from "../validators/product.validate";
+import productController from "../controllers/product.controller";
 
 const router = express.Router();
 router.post("/auth/login", authMiddleware.validateLogin, authController.loginController);
@@ -26,5 +28,11 @@ router.get("/category", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN
 router.get("/category/:id", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN, ROLES.KASIR]), categoryController.findOne);
 router.put("/category/:id", [authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), validatorMiddleware.validate(categorySchema)], categoryController.update);
 router.delete("/category/:id", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), categoryController.remove);
+
+router.post("/product", [authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), validatorMiddleware.validate(productSchema)], productController.create);
+router.get("/product", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN, ROLES.KASIR]), productController.findAll);
+router.get("/product/:id", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN, ROLES.KASIR]), productController.findOne);
+router.put("/product/:id", [authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), validatorMiddleware.validate(productUpdateSchema)], productController.update);
+router.delete("/product/:id", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), productController.remove);
 
 export default router;
