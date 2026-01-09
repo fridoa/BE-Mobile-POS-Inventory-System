@@ -8,6 +8,7 @@ export interface IUser {
   username: string;
   password: string;
   role: ROLES;
+  isActive?: boolean;
   refreshToken?: {
     token: string;
     previousToken?: string;
@@ -24,4 +25,10 @@ export interface ITokenPayload {
 
 export interface IAuthRequest extends Request {
   user?: ITokenPayload;
+}
+
+export interface IPaginationQuery {
+  page: number;
+  limit: number;
+  search: string;
 }
