@@ -23,11 +23,15 @@ const UserSchema = new Schema<IUser>(
       enum: [ROLES.ADMIN, ROLES.KASIR],
       required: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
     refreshToken: {
       token: String,
       previousToken: String,
       lastRotatedAt: Date,
-    }
+    },
   },
   { timestamps: true }
 );
@@ -62,6 +66,7 @@ UserSchema.methods.comparePassword = function (passwordInput: string): Promise<b
 UserSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
+  delete user.refreshToken;
   return user;
 };
 
