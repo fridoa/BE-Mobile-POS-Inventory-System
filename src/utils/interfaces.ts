@@ -9,6 +9,7 @@ export interface IUser {
   password: string;
   role: ROLES;
   isActive?: boolean;
+  fcmToken?: string;
   refreshToken?: {
     token: string;
     previousToken?: string;
@@ -30,5 +31,9 @@ export interface IAuthRequest extends Request {
 export interface IPaginationQuery {
   page: number;
   limit: number;
-  search: string;
+  search?: string;
+  category?: string;
+  stockStatus?: "low" | "";
+  name?: string;
+  sku?: string;
 }

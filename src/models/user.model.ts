@@ -27,6 +27,10 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: true,
     },
+    fcmToken: {
+      type: String,
+      default: null
+    },
     refreshToken: {
       token: String,
       previousToken: String,
