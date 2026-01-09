@@ -3,6 +3,9 @@ import { IAuthRequest, IPaginationQuery } from "../utils/interfaces";
 import ProductModel from "../models/product.model";
 import { error, pagination, success } from "../utils/response";
 import uploader from "../utils/uploader";
+import { sendNotification } from "../utils/fcm.util";
+import UserModel from "../models/user.model";
+import { ROLES } from "../utils/constants";
 
 export default {
   async create(req: IAuthRequest, res: Response) {
@@ -15,14 +18,29 @@ export default {
   },
 
   async findAll(req: IAuthRequest, res: Response) {
-    const { page = 1, limit = 10, search = "" } = req.query as unknown as IPaginationQuery;
+    const { page = 1, limit = 10, search = "", category = "", stockStatus = "", name = "", sku = "" } = req.query as unknown as IPaginationQuery;
 
     try {
-      const query = {};
-      if (search) {
-        Object.assign(query, {
-          $or: [{ name: { $regex: search, $options: "i" } }, { sku: { $regex: search, $options: "i" } }],
-        });
+      const query: any = {};
+
+      const cleanSearch = search.trim();
+
+      if (sku) {
+        query.sku = sku;
+      } else if (name) {
+        query.name = { $regex: name, $options: "i" };
+      }
+
+      if (cleanSearch) {
+        query.$or = [{ sku: cleanSearch }, { name: { $regex: cleanSearch, $options: "i" } }];
+      }
+
+      if (category) {
+        query.category = category;
+      }
+
+      if (stockStatus === "low") {
+        query.$expr = { $lte: ["$stock", "$minStock"] };
       }
 
       const [count, result] = await Promise.all([
@@ -70,12 +88,6 @@ export default {
       const oldProduct = await ProductModel.findById(id);
       if (!oldProduct) return error(res, null, "Produk tidak ditemukan");
 
-      /**
-       * LOGIKA PEMBERSIHAN IMAGEKIT (Cleanup)
-       * Kita hapus file di ImageKit jika:
-       * - Admin mengirim imageFileId baru (ganti foto)
-       * - Admin mengosongkan foto (imageUrl "" atau null)
-       */
       const isImageReplaced = req.body.imageFileId && req.body.imageFileId !== oldProduct.imageFileId;
       const isImageRemoved = req.body.imageUrl === "" || req.body.imageUrl === null;
 
@@ -96,6 +108,11 @@ export default {
       if (!result) return error(res, null, "Gagal memperbarui data produk");
 
       if (result.stock <= result.minStock) {
+        const adminUser = await UserModel.findOne({ role: ROLES.ADMIN });
+
+        if (adminUser?.fcmToken) {
+          await sendNotification(adminUser.fcmToken, "⚠️ Stok Menipis!", `Produk ${result.name} tersisa ${result.stock} pcs. Segera restock!`);
+        }
         console.log(`[FCM Trigger]: Stok ${result.name} menipis! Sisa: ${result.stock} (Min: ${result.minStock})`);
       }
 

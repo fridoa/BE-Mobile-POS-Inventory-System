@@ -18,6 +18,7 @@ router.post("/auth/login", authMiddleware.validateLogin, authController.loginCon
 router.post("/auth/refresh-token", authController.refreshTokenController);
 router.get("/auth/profile", authMiddleware.authorization, authController.getProfileController);
 router.put("/auth/change-password", authMiddleware.authorization, authMiddleware.validateChangePassword, authController.changePasswordController);
+router.patch("/auth/update-fcm-token", authMiddleware.authorization, userController.updateFCMToken);
 
 router.post("/user", [authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), validatorMiddleware.validate(userSchema)], userController.create);
 router.get("/user", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), userController.findAll);

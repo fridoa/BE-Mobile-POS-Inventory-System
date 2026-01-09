@@ -77,6 +77,26 @@ export default {
     }
   },
 
+  async updateFCMToken(req: IAuthRequest, res: Response) {
+    try {
+      const { token } = req.body;
+
+      if (!req.user) {
+        return error(res, null, "User tidak terautentikasi");
+      }
+
+      const userId = req.user._id;
+
+      if (!token) return error(res, null, "Token tidak boleh kosong");
+
+      await UserModel.findByIdAndUpdate(userId, { fcmToken: token });
+
+      success(res, null, "FCM Token berhasil diperbarui");
+    } catch (err) {
+      error(res, err, "Gagal memperbarui FCM Token");
+    }
+  },
+
   async remove(req: IAuthRequest, res: Response) {
     try {
       const { id } = req.params;
