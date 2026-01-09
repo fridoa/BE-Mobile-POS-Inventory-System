@@ -17,6 +17,10 @@ async function loginService(userData: TLogin) {
     throw new createHttpError.Unauthorized("Invalid username or password");
   }
 
+  if (user.isActive === false) {
+    throw new createHttpError.Forbidden("Akun Anda telah dinonaktifkan. Silahkan hubungi administrator.");
+  }
+
   const payload: ITokenPayload = {
     _id: user._id.toString(),
     role: user.role,
@@ -28,6 +32,7 @@ async function loginService(userData: TLogin) {
     previousToken: "",
     lastRotatedAt: new Date(),
   };
+
   await user.save();
 
   return token;
