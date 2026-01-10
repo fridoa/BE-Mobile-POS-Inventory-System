@@ -79,7 +79,7 @@ export default {
 
   async updateFCMToken(req: IAuthRequest, res: Response) {
     try {
-      const { token } = req.body;
+      const { fcmToken } = req.body;
 
       if (!req.user) {
         return error(res, null, "User tidak terautentikasi");
@@ -87,9 +87,15 @@ export default {
 
       const userId = req.user._id;
 
-      if (!token) return error(res, null, "Token tidak boleh kosong");
+      if (!userId) {
+        return error(res, null, "Gagal mengidentifikasi pengguna dari token");
+      }
 
-      await UserModel.findByIdAndUpdate(userId, { fcmToken: token });
+      if (!fcmToken) return error(res, null, "Token tidak boleh kosong");
+
+      await UserModel.updateMany({ fcmToken: fcmToken, _id: { $ne: userId } }, { $unset: { fcmToken: 1 } });
+
+      await UserModel.findByIdAndUpdate(userId, { fcmToken: fcmToken });
 
       success(res, null, "FCM Token berhasil diperbarui");
     } catch (err) {
