@@ -40,7 +40,7 @@ export default {
           .exec(),
       ]);
 
-      pagination(res, "Berhasil mengambil semua data user", { total: count, totalPages: Math.ceil(count / limit), currentPage: page }, result);
+      pagination(res, "Berhasil mengambil semua data user", { total: count, totalPages: Math.ceil(count / limit), currentPage: Number(page) }, result);
     } catch (err) {
       error(res, err, "Gagal mengambil data user");
     }

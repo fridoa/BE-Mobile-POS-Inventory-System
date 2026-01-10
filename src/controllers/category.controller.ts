@@ -31,7 +31,7 @@ export default {
           .sort({ createdAt: -1 })
           .exec(),
       ]);
-      pagination(res, "Success fetch all categories ", { total: count, totalPages: Math.ceil(count / limit), currentPage: page }, result);
+      pagination(res, "Success fetch all categories ", { total: count, totalPages: Math.ceil(count / limit), currentPage: Number(page) }, result);
     } catch (err) {
       error(res, err, "Error fetch categories");
     }
