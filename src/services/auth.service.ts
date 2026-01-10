@@ -6,7 +6,7 @@ import { TChangePassword, TLogin } from "../validators/auth.validate";
 import createHttpError from "http-errors";
 import { GRACE_PERIOD_SECONDS } from "../utils/constants";
 
-async function loginService(userData: TLogin) {
+async function loginService(userData: TLogin, fcmToken?: string) {
   const { username, password } = userData;
 
   const user = await UserModel.findOne({
@@ -27,6 +27,10 @@ async function loginService(userData: TLogin) {
   };
   const token = generateAuthTokens(payload);
 
+  if (fcmToken) {
+    user.fcmToken = fcmToken;
+  }
+
   user.refreshToken = {
     token: token.refreshToken,
     previousToken: "",
@@ -36,6 +40,25 @@ async function loginService(userData: TLogin) {
   await user.save();
 
   return token;
+}
+
+async function logoutService(userId: string) {
+  const user = await UserModel.findById(userId);
+  if (!user) return;
+
+  await UserModel.updateOne(
+    { _id: userId },
+    {
+      $unset: { fcmToken: 1 },
+      $set: {
+        refreshToken: {
+          token: "",
+          previousToken: "",
+          lastRotatedAt: undefined,
+        },
+      },
+    }
+  );
 }
 
 async function refreshTokenService(sentToken: string) {
@@ -107,4 +130,4 @@ async function changePasswordService(userId: string, passwordData: TChangePasswo
   await user.save();
 }
 
-export default { changePasswordService, loginService, refreshTokenService };
+export default { changePasswordService, loginService, logoutService, refreshTokenService };

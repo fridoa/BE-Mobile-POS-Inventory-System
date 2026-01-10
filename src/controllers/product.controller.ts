@@ -3,9 +3,9 @@ import { IAuthRequest, IPaginationQuery } from "../utils/interfaces";
 import ProductModel from "../models/product.model";
 import { error, pagination, success } from "../utils/response";
 import uploader from "../utils/uploader";
-import { sendNotification } from "../utils/fcm.util";
 import UserModel from "../models/user.model";
 import { ROLES } from "../utils/constants";
+import { sendMulticastNotification } from "../utils/fcm.util";
 
 export default {
   async create(req: IAuthRequest, res: Response) {
@@ -108,10 +108,15 @@ export default {
       if (!result) return error(res, null, "Gagal memperbarui data produk");
 
       if (result.stock <= result.minStock) {
-        const adminUser = await UserModel.findOne({ role: ROLES.ADMIN });
+        const adminUser = await UserModel.find({
+          role: ROLES.ADMIN,
+          fcmToken: { $exists: true, $ne: null },
+        }).select("fcmToken");
 
-        if (adminUser?.fcmToken) {
-          await sendNotification(adminUser.fcmToken, "⚠️ Stok Menipis!", `Produk ${result.name} tersisa ${result.stock} pcs. Segera restock!`);
+        const targetTokens = adminUser.map((u) => u.fcmToken as string);
+
+        if (targetTokens.length > 0) {
+          await sendMulticastNotification(targetTokens, "⚠️ Stok Menipis!", `Produk ${result.name} tersisa ${result.stock} pcs. Segera restock!`, { productId: result._id.toString() });
         }
         console.log(`[FCM Trigger]: Stok ${result.name} menipis! Sisa: ${result.stock} (Min: ${result.minStock})`);
       }

@@ -1,6 +1,6 @@
-import e, { Request, Response } from "express";
+import { Request, Response } from "express";
 import authService from "../services/auth.service";
-import { success, error } from "../utils/response";
+import { success, error, unauthorized } from "../utils/response";
 import { IAuthRequest } from "../utils/interfaces";
 import UserModel from "../models/user.model";
 import { TChangePassword } from "../validators/auth.validate";
@@ -8,10 +8,25 @@ import { TChangePassword } from "../validators/auth.validate";
 export default {
   async loginController(req: Request, res: Response) {
     try {
-      const payload = await authService.loginService(req.body);
+      const { fcmToken } = req.body;
+
+      const payload = await authService.loginService(req.body, fcmToken);
       success(res, payload, "Login successful");
     } catch (err) {
       error(res, err, "Login failed");
+    }
+  },
+
+  async logoutController(req: IAuthRequest, res: Response) {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        return unauthorized(res, "User not authenticated / Session invalid");
+      }
+      await authService.logoutService(userId);
+      success(res, null, "Logout successful");
+    } catch (err) {
+      error(res, err, "Logout failed");
     }
   },
 
