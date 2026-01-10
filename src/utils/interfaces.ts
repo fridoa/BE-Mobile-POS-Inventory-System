@@ -36,4 +36,6 @@ export interface IPaginationQuery {
   stockStatus?: "low" | "";
   name?: string;
   sku?: string;
+  startDate?: string;
+  endDate?: string;
 }

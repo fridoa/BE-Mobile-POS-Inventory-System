@@ -12,6 +12,8 @@ import { productSchema, productUpdateSchema } from "../validators/product.valida
 import productController from "../controllers/product.controller";
 import mediaMiddleware from "../middlewares/media.middleware";
 import mediaController from "../controllers/media.controller";
+import { transactionSchema } from "../validators/transaction.validate";
+import transactionController from "../controllers/transaction.controller";
 
 const router = express.Router();
 router.post("/auth/login", authMiddleware.validateLogin, authController.loginController);
@@ -42,5 +44,9 @@ router.delete("/product/:id", authMiddleware.authorization, aclMiddleware([ROLES
 router.post("/media/upload-single", mediaMiddleware.single("file"), mediaController.single);
 router.post("/media/upload-multiple", mediaMiddleware.multiple("files", 5), mediaController.multiple);
 router.delete("/media/remove", mediaController.remove);
+
+router.post("/transaction", [authMiddleware.authorization, aclMiddleware([ROLES.KASIR]), validatorMiddleware.validate(transactionSchema)], transactionController.create);
+router.get("/transaction", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN, ROLES.KASIR]), transactionController.findAll);
+router.get("/transaction/:id", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN, ROLES.KASIR]), transactionController.findOne);
 
 export default router;
