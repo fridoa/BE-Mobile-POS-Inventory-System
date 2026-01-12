@@ -32,9 +32,10 @@ export default {
         totalAmount += subTotal;
 
         transactionItems.push({
-          product_id: product._id,
+          productId: product._id,
           name: product.name,
-          current_price: product.price,
+          price: product.price,
+          costPrice: product.costPrice,
           quantity: item.quantity,
           subtotal: subTotal,
         });
@@ -153,7 +154,6 @@ export default {
         if (result.cashierId instanceof Types.ObjectId) {
           transactionOwnerId = result.cashierId.toString();
         } else {
-          
           transactionOwnerId = (result.cashierId as { _id: Types.ObjectId })._id.toString();
         }
 
