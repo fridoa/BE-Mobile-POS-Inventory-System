@@ -15,6 +15,7 @@ import mediaController from "../controllers/media.controller";
 import { transactionSchema } from "../validators/transaction.validate";
 import transactionController from "../controllers/transaction.controller";
 import reportController from "../controllers/report.controller";
+import notificationController from "../controllers/notification.controller";
 
 const router = express.Router();
 router.post("/auth/login", authMiddleware.validateLogin, authController.loginController);
@@ -52,5 +53,10 @@ router.get("/transaction/:id", authMiddleware.authorization, aclMiddleware([ROLE
 
 router.get("/report/sales-summary", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), reportController.getSalesSummary);
 router.get("/report/top-products", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), reportController.getTopSellingProducts);
+
+router.get("/notification", authMiddleware.authorization, notificationController.findAll);
+router.get("/notification/unread-count", authMiddleware.authorization, notificationController.countUnread);
+router.patch("/notification/:id/mark-as-read", authMiddleware.authorization, notificationController.markAsRead);
+router.patch("/notification/mark-all-read", authMiddleware.authorization, notificationController.markAllRead);
 
 export default router;

@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import router from "./routes/api";
 import connect from "./utils/database";
 import { env } from "./utils/env";
+import { initScheduledJobs } from "./utils/scheduler";
 
 dotenv.config();
 
@@ -27,6 +28,8 @@ async function init() {
     });
 
     app.use("/api/v1", router);
+
+    initScheduledJobs();
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server is running on http://localhost:${PORT}`);
