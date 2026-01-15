@@ -3,11 +3,10 @@ import { IAuthRequest, IPaginationQuery } from "../utils/interfaces";
 import mongoose, { Types } from "mongoose";
 import ProductModel from "../models/product.model";
 import TransactionModel from "../models/transaction.model";
-import UserModel from "../models/user.model";
-import { sendMulticastNotification } from "../utils/fcm.util";
 import { error, pagination, success } from "../utils/response";
 import { ROLES } from "../utils/constants";
 import { TCreateTransactionInput } from "../validators/transaction.validate";
+import { notificationService } from "../services/notification.service";
 
 export default {
   async create(req: IAuthRequest, res: Response) {
@@ -73,16 +72,16 @@ export default {
       session.endSession();
 
       if (lowStockProducts.length > 0) {
-        const adminUsers = await UserModel.find({
-          role: ROLES.ADMIN,
-          fcmToken: { $exists: true, $ne: null },
-        }).select("fcmToken");
-
-        const tokens = adminUsers.map((u) => u.fcmToken as string);
-
-        if (tokens.length > 0) {
-          sendMulticastNotification(tokens, "Low Stock Alert", `Produk menipis: ${lowStockProducts.join(", ")}`, { type: "LOW_STOCK_ALERT" });
-        }
+        notificationService.send({
+          title: "Low Stock Alert ⚠️",
+          message: `Stok menipis untuk produk: ${lowStockProducts.join(", ")}`,
+          type: "WARNING",
+          targetRole: ROLES.ADMIN,
+          data: {
+            type: "LOW_STOCK_SCREEN",
+            products: JSON.stringify(lowStockProducts),
+          },
+        });
       }
 
       success(res, result[0], "Transaction created successfully");
