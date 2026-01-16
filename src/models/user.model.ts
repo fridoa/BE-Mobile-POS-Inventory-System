@@ -22,6 +22,7 @@ const UserSchema = new Schema<IUser>(
       type: String,
       enum: [ROLES.ADMIN, ROLES.KASIR],
       required: true,
+      default: ROLES.KASIR,
     },
     isActive: {
       type: Boolean,

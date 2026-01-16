@@ -5,7 +5,7 @@ export const userSchema = Yup.object().shape({
   name: Yup.string().required("Name is required"),
   username: Yup.string().required("Username is required").trim().lowercase(),
   password: Yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
-  role: Yup.string<ROLES>().oneOf([ROLES.ADMIN, ROLES.KASIR], "Role must be either 'admin' or 'kasir'").required("Role is required"),
+  role: Yup.string<ROLES>().oneOf([ROLES.ADMIN, ROLES.KASIR], "Role must be either 'admin' or 'kasir'").optional(),
 });
 
 export const userUpdateSchema = Yup.object().shape({
