@@ -20,7 +20,7 @@ export default {
     const { page = 1, limit = 10, search = "", category = "", stockStatus = "", name = "", sku = "" } = req.query as unknown as IPaginationQuery;
 
     try {
-      const query: any = {};
+      const query: any = { isActive: { $ne: false } };
 
       const cleanSearch = search.trim();
 
@@ -60,7 +60,7 @@ export default {
           totalPages: Math.ceil(count / limit),
           currentPage: Number(page),
         },
-        result
+        result,
       );
     } catch (err) {
       error(res, err, "Error fetch products");
@@ -72,11 +72,24 @@ export default {
       const { id } = req.params;
       const result = await ProductModel.findById(id).populate("category", "name");
 
-      if (!result) return error(res, null, "Produk tidak ditemukan");
+      if (!result) return error(res, null, "Produk tidak ditemukan", 404);
 
       success(res, result, "Berhasil mengambil detail produk");
     } catch (err) {
       error(res, err, "Gagal mengambil detail produk");
+    }
+  },
+
+  async findBySKU(req: IAuthRequest, res: Response) {
+    try {
+      let { sku } = req.params;
+      sku = String(sku).trim();
+      const result = await ProductModel.findOne({ sku }).populate("category", "name");
+
+      if (!result) return error(res, null, "Produk tidak ditemukan", 404);
+      success(res, result, "Berhasil mengambil data produk berdasarkan SKU");
+    } catch (err) {
+      error(res, err, "Gagal mengambil data produk berdasarkan SKU");
     }
   },
 
