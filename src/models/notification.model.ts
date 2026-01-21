@@ -41,8 +41,10 @@ const NotificationSchema = new mongoose.Schema<INotification>(
       type: mongoose.Schema.Types.Mixed,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
+
+NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 });
 
 NotificationSchema.index({ userId: 1, createdAt: -1 });
 
