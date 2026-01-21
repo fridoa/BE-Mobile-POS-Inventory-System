@@ -1,41 +1,24 @@
 import cron from "node-cron";
-import NotificationModel from "../models/notification.model";
 import ProductModel from "../models/product.model";
 import { notificationService } from "../services/notification.service";
 import { ROLES } from "./constants";
 
 export const initScheduledJobs = () => {
   cron.schedule(
-    "0 3 * * *",
-    async () => {
-      console.log("[CRON] Mulai pembersihan notifikasi lama...");
-      try {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        const result = await NotificationModel.deleteMany({
-          createdAt: { $lt: thirtyDaysAgo },
-        });
-
-        console.log(`[CRON] Terhapus ${result.deletedCount} notifikasi usang.`);
-      } catch (error) {
-        console.error("[CRON] Gagal membersihkan notifikasi:", error);
-      }
-    },
-    { timezone: "Asia/Jakarta" }
-  );
-
-  cron.schedule(
     "0 8 * * *",
     async () => {
-      console.log("[CRON] Checking expiring products...");
+      console.log("[CRON] Memulai pemeriksaan produk yang akan kadaluwarsa...");
       try {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
         const sevenDaysFromNow = new Date();
         sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+        sevenDaysFromNow.setHours(23, 59, 59, 999);
 
         const expiringProducts = await ProductModel.find({
           expiryDate: {
-            $gte: new Date(),
+            $gte: todayStart,
             $lte: sevenDaysFromNow,
           },
           isActive: true,
@@ -49,8 +32,8 @@ export const initScheduledJobs = () => {
               const dateStr = new Date(prod.expiryDate).toLocaleDateString("id-ID");
 
               await notificationService.send({
-                title: "⏰ Produk Hampir Expired!",
-                message: `${prod.name} akan expired pada tgl ${dateStr}. Segera diskon atau habiskan!`,
+                title: "⏰ Produk Hampir Kadaluwarsa!",
+                message: `${prod.name} akan kadaluwarsa pada ${dateStr}. Segera beri diskon atau habiskan stok!`,
                 type: "WARNING",
                 targetRole: ROLES.ADMIN,
                 data: { productId: prod._id.toString(), type: "PRODUCT_DETAIL" },
@@ -59,17 +42,17 @@ export const initScheduledJobs = () => {
           }
         } else {
           await notificationService.send({
-            title: "⚠️ Alert Inventory Mingguan",
-            message: `Ada ${expiringProducts.length} produk yang akan expired dalam 7 hari kedepan. Cek laporan sekarang!`,
+            title: "⚠️ Peringatan Inventaris Mingguan",
+            message: `Ada ${expiringProducts.length} produk yang kadaluwarsa dalam 7 hari ke depan. Cek laporan sekarang!`,
             type: "WARNING",
             targetRole: ROLES.ADMIN,
             data: { type: "EXPIRY_REPORT_SCREEN" },
           });
         }
       } catch (error) {
-        console.error("[CRON] Expiry check failed:", error);
+        console.error("[CRON] Gagal menjalankan pengecekan kadaluwarsa:", error);
       }
     },
-    { timezone: "Asia/Jakarta" }
+    { timezone: "Asia/Jakarta" },
   );
 };
