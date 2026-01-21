@@ -18,22 +18,27 @@ export default {
       const cashierId = req.user?._id;
       const lowStockProducts: string[] = [];
       let totalAmount = 0;
+      let totalCostAmount = 0;
       const transactionItems = [];
 
       for (const item of items) {
         const product = await ProductModel.findOneAndUpdate({ _id: item.productId, isActive: true, stock: { $gte: item.quantity } }, { $inc: { stock: -item.quantity } }, { new: true, session });
 
         if (!product) {
-          throw new Error(`Product ${item.productId} not found or insufficient stock`);
+          throw new Error(`Produk ${item.productId} tidak ditemukan atau stok tidak mencukupi`);
         }
 
-        const subTotal = product.price * item.quantity;
+        const discountAmount = (product.price * (product.discount || 0)) / 100;
+        const finalPrice = product.price - discountAmount;
+        const subTotal = finalPrice * item.quantity;
+
         totalAmount += subTotal;
+        totalCostAmount += (product.costPrice || 0) * item.quantity;
 
         transactionItems.push({
           productId: product._id,
           name: product.name,
-          price: product.price,
+          price: finalPrice,
           costPrice: product.costPrice,
           quantity: item.quantity,
           subtotal: subTotal,
@@ -45,14 +50,16 @@ export default {
       }
 
       if (payAmount < totalAmount) {
-        throw new Error("Insufficient payment amount");
+        throw new Error("Uang pembayaran tidak mencukupi");
       }
 
       const changeAmount = payAmount - totalAmount;
 
       const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-      const count = await TransactionModel.countDocuments();
-      const transactionNumber = `TRX-${dateStr}-${(count + 1).toString().padStart(4, "0")}`;
+      const randomSuffix = Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, "0");
+      const transactionNumber = `TRX-${dateStr}-${Date.now().toString().slice(-4)}${randomSuffix}`;
 
       const result = await TransactionModel.create(
         [
@@ -61,11 +68,12 @@ export default {
             cashierId,
             items: transactionItems,
             totalAmount,
+            totalProfit: totalAmount - totalCostAmount,
             payAmount,
             changeAmount,
           },
         ],
-        { session }
+        { session },
       );
 
       await session.commitTransaction();
@@ -73,25 +81,21 @@ export default {
 
       if (lowStockProducts.length > 0) {
         notificationService.send({
-          title: "Low Stock Alert ⚠️",
-          message: `Stok menipis untuk produk: ${lowStockProducts.join(", ")}`,
+          title: "Stok Menipis! ⚠️",
+          message: `${lowStockProducts.length} produk hampir habis: ${lowStockProducts.slice(0, 2).join(", ")}${lowStockProducts.length > 2 ? "..." : ""}`,
           type: "WARNING",
           targetRole: ROLES.ADMIN,
-          data: {
-            type: "LOW_STOCK_SCREEN",
-            products: JSON.stringify(lowStockProducts),
-          },
+          data: { type: "RESTOCK_SCREEN" },
         });
       }
 
-      success(res, result[0], "Transaction created successfully");
+      success(res, result[0], "Transaksi berhasil disimpan");
     } catch (err) {
       if (session.inTransaction()) {
         await session.abortTransaction();
       }
       session.endSession();
-
-      error(res, err, "Transaction failed");
+      error(res, err, "Transaksi gagal diproses");
     }
   },
 
