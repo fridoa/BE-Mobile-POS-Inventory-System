@@ -40,6 +40,7 @@ router.delete("/category/:id", authMiddleware.authorization, aclMiddleware([ROLE
 router.post("/product", [authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), validatorMiddleware.validate(productSchema)], productController.create);
 router.get("/product", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN, ROLES.KASIR]), productController.findAll);
 router.get("/product/:id", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN, ROLES.KASIR]), productController.findOne);
+router.get("/product/sku/:sku", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN, ROLES.KASIR]), productController.findBySKU);
 router.put("/product/:id", [authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), validatorMiddleware.validate(productUpdateSchema)], productController.update);
 router.delete("/product/:id", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), productController.remove);
 
