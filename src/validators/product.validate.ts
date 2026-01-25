@@ -3,7 +3,8 @@ import * as Yup from "yup";
 
 export const productSchema = Yup.object().shape({
   name: Yup.string().required("Product name is required").trim(),
-  price: Yup.number().required("Price is required").min(0, "Price must be at least 0").moreThan(Yup.ref("costPrice"), "Price must be greater than cost price"),
+  basePrice: Yup.number().required("Base price is required").min(0, "Base price must be at least 0"),
+  price: Yup.number().min(0).nullable().optional(),
   costPrice: Yup.number().required("Cost price is required").min(0, "Cost price must be at least 0"),
   stock: Yup.number().required("Stock is required").min(0, "Stock must be at least 0"),
   minStock: Yup.number().required("Minimum stock is required").min(0, "Minimum stock must be at least 0"),
@@ -17,7 +18,8 @@ export const productSchema = Yup.object().shape({
 
 export const productUpdateSchema = Yup.object().shape({
   name: Yup.string().trim(),
-  price: Yup.number().min(0, "Price must be at least 0").moreThan(Yup.ref("costPrice"), "Price must be greater than cost price"),
+  basePrice: Yup.number().min(0, "Base price must be at least 0"),
+  price: Yup.number().min(0).nullable(),
   costPrice: Yup.number().min(0, "Cost price must be at least 0"),
   stock: Yup.number().min(0, "Stock must be at least 0"),
   minStock: Yup.number().min(0, "Minimum stock must be at least 0"),
