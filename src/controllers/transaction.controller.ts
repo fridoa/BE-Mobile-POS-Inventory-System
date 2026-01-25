@@ -28,9 +28,13 @@ export default {
           throw new Error(`Produk ${item.productId} tidak ditemukan atau stok tidak mencukupi`);
         }
 
-        const discountAmount = (product.price * (product.discount || 0)) / 100;
-        const finalPrice = product.price - discountAmount;
-        const subTotal = finalPrice * item.quantity;
+        const actualBasePrice = product.basePrice || product.price;
+
+        const discountPercentage = product.discount || 0;
+        const discountAmountPerUnit = (actualBasePrice * discountPercentage) / 100;
+
+        const sellingPrice = actualBasePrice - discountAmountPerUnit;
+        const subTotal = sellingPrice * item.quantity;
 
         totalAmount += subTotal;
         totalCostAmount += (product.costPrice || 0) * item.quantity;
@@ -38,10 +42,12 @@ export default {
         transactionItems.push({
           productId: product._id,
           name: product.name,
-          price: finalPrice,
+          basePrice: actualBasePrice,
+          price: sellingPrice,
           costPrice: product.costPrice,
           quantity: item.quantity,
           subtotal: subTotal,
+          discount: discountAmountPerUnit * item.quantity,
         });
 
         if (product.stock <= product.minStock) {

@@ -4,6 +4,7 @@ export interface ITransactionItem {
   productId: mongoose.Types.ObjectId;
   name: string;
   price: number;
+  basePrice: number;
   costPrice: number;
   quantity: number;
   subtotal: number;
@@ -36,6 +37,7 @@ const TransactionSchema = new mongoose.Schema<ITransaction>(
         productId: { type: mongoose.Types.ObjectId, required: true, ref: "Product" },
         name: { type: String, required: true },
         price: { type: Number, required: true },
+        basePrice: { type: Number, required: true },
         costPrice: { type: Number, required: true },
         quantity: { type: Number, required: true },
         subtotal: { type: Number, required: true },
