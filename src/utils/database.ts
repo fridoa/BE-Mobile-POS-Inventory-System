@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import { env } from "./env";
 
-mongoose.set("debug", true);
 
 const connect = async () => {
   try {
