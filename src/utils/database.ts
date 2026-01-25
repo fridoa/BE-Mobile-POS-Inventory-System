@@ -1,10 +1,12 @@
 import mongoose from "mongoose";
 import { env } from "./env";
 
+mongoose.set("debug", true);
+
 const connect = async () => {
   try {
-    await mongoose.connect(env.DATABASE_URL, {
-      dbName: "db_posandinventorysystem",
+    await mongoose.connect(env.DATABASE_URL_DEMO, {
+      dbName: "db_pos_demo",
     });
     return Promise.resolve("Database connected");
   } catch (error) {
