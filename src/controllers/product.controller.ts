@@ -9,7 +9,23 @@ import { notificationService } from "../services/notification.service";
 export default {
   async create(req: IAuthRequest, res: Response) {
     try {
-      const result = await ProductModel.create(req.body);
+      const { basePrice, costPrice, price, ...rest } = req.body;
+
+      if (basePrice < costPrice) {
+        return error(res, null, `Harga jual (${basePrice}) tidak boleh lebih rendah dari harga modal (${costPrice})`, 400);
+      }
+
+      const productData = {
+        ...rest,
+        basePrice,
+        price: price !== undefined && price !== null ? price : basePrice,
+      };
+
+      if (basePrice === undefined || basePrice === null) {
+        return error(res, null, "Harga Jual (basePrice) wajib diisi", 400);
+      }
+
+      const result = await ProductModel.create(productData);
       success(res, result, "Product created successfully");
     } catch (err) {
       error(res, err, "Error creating product");
@@ -96,50 +112,33 @@ export default {
   async update(req: IAuthRequest, res: Response) {
     try {
       const { id } = req.params;
+      const { basePrice, costPrice, price, ...rest } = req.body;
 
       const oldProduct = await ProductModel.findById(id);
       if (!oldProduct) return error(res, null, "Produk tidak ditemukan");
 
-      const isImageReplaced = req.body.imageFileId && req.body.imageFileId !== oldProduct.imageFileId;
-      const isImageRemoved = req.body.imageUrl === "" || req.body.imageUrl === null;
+      const finalBasePrice = basePrice !== undefined ? basePrice : oldProduct.basePrice;
+      const finalCostPrice = costPrice !== undefined ? costPrice : oldProduct.costPrice;
 
-      if ((isImageReplaced || isImageRemoved) && oldProduct.imageFileId) {
-        try {
-          await uploader.removeFile(oldProduct.imageFileId);
-          console.log(`[ImageKit]: Foto lama (${oldProduct.imageFileId}) berhasil dihapus.`);
-        } catch (err) {
-          console.error("[ImageKit Error]: Gagal menghapus foto lama, lanjut update database...");
-        }
+      if (finalBasePrice < finalCostPrice) {
+        return error(res, null, `Update ditolak: Harga jual baru (${finalBasePrice}) lebih rendah dari harga modal (${finalCostPrice})`, 400);
       }
 
-      const result = await ProductModel.findByIdAndUpdate(id, req.body, {
+      let updatedData: any = { ...rest, basePrice, costPrice };
+
+      if (basePrice !== undefined) {
+        updatedData.price = price !== undefined ? price : basePrice;
+      } else if (price !== undefined) {
+        updatedData.price = price;
+      }
+
+      const result = await ProductModel.findByIdAndUpdate(id, updatedData, {
         new: true,
         runValidators: true,
       }).populate("category", "name");
 
-      if (!result) return error(res, null, "Gagal memperbarui data produk");
-
-      if (result.stock <= result.minStock) {
-        notificationService.send({
-          title: "Stok Menipis ⚠️",
-          message: `Produk ${result.name} tersisa ${result.stock} pcs. Segera restock!`,
-          type: "WARNING",
-          targetRole: ROLES.ADMIN,
-          data: {
-            type: "PRODUCT_DETAIL",
-            productId: result._id.toString(),
-          },
-        });
-
-        console.log(`[Notification Trigger]: Stok ${result.name} menipis!`);
-      }
-
       success(res, result, "Produk berhasil diperbarui");
     } catch (err) {
-      if (err instanceof Error && (err as any).code === 11000) {
-        return error(res, null, "SKU atau Nama produk sudah digunakan", 400);
-      }
-
       error(res, err, "Gagal memperbarui produk");
     }
   },
