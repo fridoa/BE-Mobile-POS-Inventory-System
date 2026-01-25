@@ -3,6 +3,7 @@ import mongoose, { Query, Schema, Types } from "mongoose";
 export interface IProduct {
   _id: Types.ObjectId;
   name: string;
+  basePrice: number;
   price: number;
   costPrice: number;
   stock: number;
@@ -23,6 +24,11 @@ const ProductSchema = new Schema<IProduct>(
       required: true,
       unique: true,
       trim: true,
+    },
+    basePrice: {
+      type: Number,
+      required: true,
+      min: 0,
     },
     price: {
       type: Number,
