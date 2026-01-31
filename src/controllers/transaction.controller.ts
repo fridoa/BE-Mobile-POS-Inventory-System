@@ -61,7 +61,13 @@ export default {
 
       const changeAmount = payAmount - totalAmount;
 
-      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const dateStr = new Date()
+        .toLocaleDateString("en-GB", {
+          timeZone: "Asia/Jakarta",
+        })
+        .split("/")
+        .reverse()
+        .join("");
       const randomSuffix = Math.floor(Math.random() * 1000)
         .toString()
         .padStart(3, "0");
@@ -119,12 +125,8 @@ export default {
       }
 
       if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-
-        start.setHours(0, 0, 0, 0);
-
-        end.setHours(23, 59, 59, 999);
+        const start = new Date(`${startDate}T00:00:00+07:00`);
+        const end = new Date(`${endDate}T23:59:59+07:00`);
 
         query.createdAt = {
           $gte: start,
@@ -176,4 +178,6 @@ export default {
       error(res, err, "Failed to fetch transaction by id");
     }
   },
+
+  
 };
