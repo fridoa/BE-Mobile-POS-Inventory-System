@@ -23,7 +23,7 @@ export const productUpdateSchema = Yup.object().shape({
   costPrice: Yup.number().min(0, "Cost price must be at least 0"),
   stock: Yup.number().min(0, "Stock must be at least 0"),
   minStock: Yup.number().min(0, "Minimum stock must be at least 0"),
-  expiryDate: Yup.date().nullable().min(new Date(), "Expiry date cannot be in the past"),
+  expiryDate: Yup.date().nullable().optional(),
   discount: Yup.number().min(0, "Discount must be at least 0").max(100, "Discount cannot exceed 100"),
   category: Yup.string().trim(),
   imageUrl: Yup.string().url("Image URL must be a valid URL").nullable(),

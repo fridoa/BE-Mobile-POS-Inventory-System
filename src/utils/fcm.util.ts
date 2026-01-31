@@ -27,6 +27,12 @@ export const sendMulticastNotification = async (tokens: string[], title: string,
     notification: { title, body },
     data: data || {},
     tokens: uniqueTokens,
+    android: {
+      priority: "high",
+      notification: {
+        channelId: "default",
+      },
+    },
   };
 
   try {

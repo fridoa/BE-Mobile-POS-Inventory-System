@@ -45,7 +45,6 @@ export const notificationService = {
         const fcmResult = await sendMulticastNotification(fcmTokens, params.title, params.message, params.data);
 
         if (fcmResult.failedTokens.length > 0) {
-          console.log(`Menghapus ${fcmResult.failedTokens.length} token FCM invalid...`);
           await UserModel.updateMany({ fcmToken: { $in: fcmResult.failedTokens } }, { $unset: { fcmToken: 1 } });
         }
       }

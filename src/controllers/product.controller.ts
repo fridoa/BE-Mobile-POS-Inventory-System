@@ -1,34 +1,38 @@
 import { Response } from "express";
 import { IAuthRequest, IPaginationQuery } from "../utils/interfaces";
-import ProductModel from "../models/product.model";
+import ProductModel, { IProduct } from "../models/product.model";
+import UserModel from "../models/user.model";
 import { error, pagination, success } from "../utils/response";
 import uploader from "../utils/uploader";
 import { ROLES } from "../utils/constants";
+import { sendMulticastNotification } from "../utils/fcm.util";
+import NotificationModel from "../models/notification.model";
 import { notificationService } from "../services/notification.service";
 
-export default {
+const ProductController = {
   async create(req: IAuthRequest, res: Response) {
     try {
-      const { basePrice, costPrice, price, ...rest } = req.body;
+      const { basePrice, costPrice, discount, ...rest } = req.body;
 
       if (basePrice < costPrice) {
         return error(res, null, `Harga jual (${basePrice}) tidak boleh lebih rendah dari harga modal (${costPrice})`, 400);
       }
 
+      const discountAmount = (basePrice * (discount || 0)) / 100;
+      const finalPrice = basePrice - discountAmount;
+
       const productData = {
         ...rest,
         basePrice,
-        price: price !== undefined && price !== null ? price : basePrice,
+        costPrice,
+        discount: discount || 0,
+        price: finalPrice,
       };
 
-      if (basePrice === undefined || basePrice === null) {
-        return error(res, null, "Harga Jual (basePrice) wajib diisi", 400);
-      }
-
       const result = await ProductModel.create(productData);
-      success(res, result, "Product created successfully");
+      success(res, result, "Produk berhasil ditambahkan");
     } catch (err) {
-      error(res, err, "Error creating product");
+      error(res, err, "Gagal membuat produk");
     }
   },
 
@@ -37,22 +41,16 @@ export default {
 
     try {
       const query: any = { isActive: { $ne: false } };
-
       const cleanSearch = search.trim();
 
-      if (sku) {
-        query.sku = sku;
-      } else if (name) {
-        query.name = { $regex: name, $options: "i" };
-      }
+      if (sku) query.sku = sku;
+      else if (name) query.name = { $regex: name, $options: "i" };
 
       if (cleanSearch) {
         query.$or = [{ sku: cleanSearch }, { name: { $regex: cleanSearch, $options: "i" } }];
       }
 
-      if (category) {
-        query.category = category;
-      }
+      if (category) query.category = category;
 
       if (stockStatus === "low") {
         query.$expr = { $lte: ["$stock", "$minStock"] };
@@ -62,24 +60,24 @@ export default {
         ProductModel.countDocuments(query),
         ProductModel.find(query)
           .populate("category", "name")
-          .limit(limit)
-          .skip((page - 1) * limit)
+          .limit(Number(limit))
+          .skip((Number(page) - 1) * Number(limit))
           .sort({ createdAt: -1 })
           .exec(),
       ]);
 
       pagination(
         res,
-        "Success fetch all products",
+        "Berhasil mengambil semua produk",
         {
           total: count,
-          totalPages: Math.ceil(count / limit),
+          totalPages: Math.ceil(count / Number(limit)),
           currentPage: Number(page),
         },
         result,
       );
     } catch (err) {
-      error(res, err, "Error fetch products");
+      error(res, err, "Gagal mengambil data produk");
     }
   },
 
@@ -99,10 +97,18 @@ export default {
   async findBySKU(req: IAuthRequest, res: Response) {
     try {
       let { sku } = req.params;
-      sku = String(sku).trim();
-      const result = await ProductModel.findOne({ sku }).populate("category", "name");
 
-      if (!result) return error(res, null, "Produk tidak ditemukan", 404);
+      const cleanSKU = String(sku).trim();
+
+      const result = await ProductModel.findOne({
+        sku: cleanSKU,
+        isActive: { $ne: false },
+      }).populate("category", "name");
+
+      if (!result) {
+        return error(res, null, `Produk dengan SKU "${cleanSKU}" tidak ditemukan`, 404);
+      }
+
       success(res, result, "Berhasil mengambil data produk berdasarkan SKU");
     } catch (err) {
       error(res, err, "Gagal mengambil data produk berdasarkan SKU");
@@ -112,34 +118,83 @@ export default {
   async update(req: IAuthRequest, res: Response) {
     try {
       const { id } = req.params;
-      const { basePrice, costPrice, price, ...rest } = req.body;
+      const { basePrice, costPrice, discount, stock, name, sku, ...rest } = req.body;
 
       const oldProduct = await ProductModel.findById(id);
-      if (!oldProduct) return error(res, null, "Produk tidak ditemukan");
+      if (!oldProduct) return error(res, null, "Produk tidak ditemukan", 404);
 
-      const finalBasePrice = basePrice !== undefined ? basePrice : oldProduct.basePrice;
-      const finalCostPrice = costPrice !== undefined ? costPrice : oldProduct.costPrice;
+      if (name && name !== oldProduct.name) {
+        const nameConflict = await ProductModel.findOne({ name, _id: { $ne: id } });
+        if (nameConflict) return error(res, null, "Nama produk sudah digunakan", 400);
+      }
+
+      const trimmedSku = sku?.trim();
+      if (trimmedSku && trimmedSku !== oldProduct.sku) {
+        const skuConflict = await ProductModel.findOne({ sku: trimmedSku, _id: { $ne: id } });
+        if (skuConflict) return error(res, null, "SKU sudah digunakan oleh produk lain", 400);
+      }
+
+      const finalBasePrice = basePrice ?? oldProduct.basePrice;
+      const finalCostPrice = costPrice ?? oldProduct.costPrice;
+      const finalDiscount = discount ?? oldProduct.discount;
 
       if (finalBasePrice < finalCostPrice) {
-        return error(res, null, `Update ditolak: Harga jual baru (${finalBasePrice}) lebih rendah dari harga modal (${finalCostPrice})`, 400);
+        return error(res, null, `Harga jual (${finalBasePrice}) tidak boleh di bawah modal (${finalCostPrice})`, 400);
       }
 
-      let updatedData: any = { ...rest, basePrice, costPrice };
+      const discountAmount = (finalBasePrice * (finalDiscount || 0)) / 100;
+      const calculatedPrice = finalBasePrice - discountAmount;
 
-      if (basePrice !== undefined) {
-        updatedData.price = price !== undefined ? price : basePrice;
-      } else if (price !== undefined) {
-        updatedData.price = price;
+      const isImageReplaced = req.body.imageFileId && req.body.imageFileId !== oldProduct.imageFileId;
+      const isImageRemoved = req.body.imageUrl === "" || req.body.imageUrl === null;
+
+      if ((isImageReplaced || isImageRemoved) && oldProduct.imageFileId) {
+        await uploader.removeFile(oldProduct.imageFileId).catch((e) => console.error("[ImageKit]: Gagal hapus file lama:", e.message));
       }
 
-      const result = await ProductModel.findByIdAndUpdate(id, updatedData, {
-        new: true,
-        runValidators: true,
-      }).populate("category", "name");
+      const result = await ProductModel.findByIdAndUpdate(
+        id,
+        {
+          ...rest,
+          name,
+          sku: trimmedSku || oldProduct.sku,
+          basePrice: finalBasePrice,
+          costPrice: finalCostPrice,
+          discount: finalDiscount,
+          stock: stock ?? oldProduct.stock,
+          price: calculatedPrice,
+        },
+        { new: true, runValidators: true },
+      ).populate("category", "name");
+
+      if (!result) return error(res, null, "Gagal memperbarui data");
+
+      if (result.stock <= result.minStock) {
+        await ProductController.handleLowStockNotification(result);
+      }
 
       success(res, result, "Produk berhasil diperbarui");
     } catch (err) {
+      if (err instanceof Error && (err as any).code === 11000) {
+        return error(res, null, "Data (SKU atau Nama) sudah digunakan", 400);
+      }
       error(res, err, "Gagal memperbarui produk");
+    }
+  },
+
+  async handleLowStockNotification(product: IProduct) {
+    try {
+      await notificationService.send({
+        title: "⚠️ Stok Menipis!",
+        message: `Produk ${product.name} tersisa ${product.stock} pcs. Segera restock!`,
+        type: "WARNING",
+        targetRole: "admin",
+        data: {
+          productId: product._id.toString(),
+        },
+      });
+    } catch (err) {
+      console.error("[Notification Error]:", err);
     }
   },
 
@@ -148,11 +203,13 @@ export default {
       const { id } = req.params;
       const result = await ProductModel.findByIdAndUpdate(id, { isActive: false }, { new: true });
 
-      if (!result) return error(res, null, "Product not found");
+      if (!result) return error(res, null, "Produk tidak ditemukan", 404);
 
-      success(res, null, "Product successfully deactivated");
+      success(res, null, "Produk berhasil dinonaktifkan");
     } catch (err) {
-      error(res, err, "Error deleting product");
+      error(res, err, "Gagal menghapus produk");
     }
   },
 };
+
+export default ProductController;

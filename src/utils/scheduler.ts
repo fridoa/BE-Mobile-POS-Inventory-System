@@ -7,7 +7,6 @@ export const initScheduledJobs = () => {
   cron.schedule(
     "0 8 * * *",
     async () => {
-      console.log("[CRON] Memulai pemeriksaan produk yang akan kadaluwarsa...");
       try {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
