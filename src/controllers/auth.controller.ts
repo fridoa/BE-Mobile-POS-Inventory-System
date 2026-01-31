@@ -30,6 +30,22 @@ export default {
     }
   },
 
+  async updateProfileController(req: IAuthRequest, res: Response) {
+    try {
+      const userId = req.user?._id;
+      if (!userId) return unauthorized(res, "Sesi tidak valid");
+
+      const updatedUser = await authService.updateProfileService(userId, req.body);
+
+      const payload = updatedUser.toObject();
+      const { password, ...userWithoutPassword } = payload;
+
+      success(res, userWithoutPassword, "Profil berhasil diperbarui");
+    } catch (err) {
+      error(res, err, "Gagal memperbarui profil");
+    }
+  },
+
   async refreshTokenController(req: Request, res: Response) {
     try {
       const { refreshToken } = req.body;
@@ -51,7 +67,7 @@ export default {
         return error(res, null, "User not authenticated");
       }
 
-      const userProfile = await UserModel.findById(userId).select("-password");
+      const userProfile = await UserModel.findById(userId).select("-password -fcmToken -__v");
       if (!userProfile) {
         return error(res, null, "User not found");
       }
@@ -75,5 +91,82 @@ export default {
     } catch (err) {
       error(res, err, "Gagal mengubah password");
     }
+  },
+
+  async forgotPasswordController(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email wajib diisi." });
+      }
+
+      await authService.forgotPasswordRequest(email);
+
+      res.status(200).json({
+        message: "Instruksi reset password telah dikirim ke email Anda.",
+      });
+    } catch (error: any) {
+      res.status(error.status || 500).json({
+        message: error.message || "Terjadi kesalahan pada server.",
+        data: null,
+      });
+    }
+  },
+
+  async resetPasswordController(req: Request, res: Response) {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token dan password baru wajib diisi." });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password minimal harus 6 karakter." });
+      }
+
+      await authService.resetPassword(token, newPassword);
+
+      res.status(200).json({
+        message: "Password berhasil diperbarui. Silakan login kembali.",
+      });
+    } catch (error: any) {
+      res.status(error.status || 400).json({
+        message: error.message || "Gagal mereset password.",
+        data: null,
+      });
+    }
+  },
+
+  async resetRedirect(req: Request, res: Response) {
+    const { token } = req.query;
+
+    const appLink = `femobilepostinventorysystem://resetPassword?token=${token}`;
+
+    res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Membuka Toko Intan...</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+        <h2 style="color: #059669;">Toko Intan</h2>
+        <p>Sedang mengarahkan Anda kembali ke aplikasi...</p>
+        <br/>
+        <a href="${appLink}" style="display: inline-block; padding: 15px 25px; background: #059669; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+          Buka Aplikasi Manual
+        </a>
+        <script>
+          // Mencoba membuka aplikasi secara otomatis
+          window.location.href = "${appLink}";
+          
+          // Fallback: Jika dalam 2 detik tidak berpindah, beri tahu user
+          setTimeout(() => {
+          }, 2000);
+        </script>
+      </body>
+    </html>
+  `);
   },
 };

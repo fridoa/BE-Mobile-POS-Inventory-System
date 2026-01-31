@@ -18,6 +18,15 @@ const UserSchema = new Schema<IUser>(
       type: String,
       required: true,
     },
+    email: {
+      type: String,
+      unique: true,
+      sparse: true,
+      lowercase: true,
+      trim: true,
+    },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
     role: {
       type: String,
       enum: [ROLES.ADMIN, ROLES.KASIR],
@@ -30,7 +39,7 @@ const UserSchema = new Schema<IUser>(
     },
     fcmToken: {
       type: String,
-      default: null
+      default: null,
     },
     refreshToken: {
       token: String,
@@ -38,7 +47,7 @@ const UserSchema = new Schema<IUser>(
       lastRotatedAt: Date,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 UserSchema.pre("save", async function () {
@@ -72,6 +81,8 @@ UserSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
   delete user.refreshToken;
+  delete user.fcmToken;
+  delete user.__v;
   return user;
 };
 

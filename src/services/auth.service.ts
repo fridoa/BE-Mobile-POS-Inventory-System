@@ -5,6 +5,9 @@ import { verifyPassword } from "../utils/password";
 import { TChangePassword, TLogin } from "../validators/auth.validate";
 import createHttpError from "http-errors";
 import { GRACE_PERIOD_SECONDS } from "../utils/constants";
+import crypto from "crypto";
+import { sendForgotPasswordEmail } from "../utils/mail/mail";
+import { hashPassword } from "../utils/password";
 
 async function loginService(userData: TLogin, fcmToken?: string) {
   const { username, password } = userData;
@@ -28,6 +31,7 @@ async function loginService(userData: TLogin, fcmToken?: string) {
   const token = generateAuthTokens(payload);
 
   if (fcmToken) {
+    await UserModel.updateMany({ fcmToken: fcmToken }, { $unset: { fcmToken: 1 } });
     user.fcmToken = fcmToken;
   }
 
@@ -39,7 +43,12 @@ async function loginService(userData: TLogin, fcmToken?: string) {
 
   await user.save();
 
-  return token;
+  const userObj = user.toObject();
+  const { password: _, fcmToken: __, refreshToken: ___, resetPasswordToken: ____, resetPasswordExpires: _____, __v, ...userWithoutSensitiveData } = userObj;
+  return {
+    user: userWithoutSensitiveData,
+    ...token,
+  };
 }
 
 async function logoutService(userId: string) {
@@ -57,8 +66,34 @@ async function logoutService(userId: string) {
           lastRotatedAt: undefined,
         },
       },
-    }
+    },
   );
+}
+
+async function updateProfileService(userId: string, profileData: Partial<{ name: string; email: string; username: string }>) {
+  const { name, email, username } = profileData;
+
+  const user = await UserModel.findById(userId);
+  if (!user) {
+    throw new createHttpError.NotFound("User not found");
+  }
+
+  if (username && username !== user.username) {
+    const existingUsername = await UserModel.findOne({ username });
+    if (existingUsername) throw createHttpError(400, "Username sudah digunakan");
+    user.username = username;
+  }
+
+  if (email && email !== user.email) {
+    if (user.role !== "admin") throw createHttpError(403, "Hanya Admin yang bisa memiliki email");
+    const existingEmail = await UserModel.findOne({ email });
+    if (existingEmail) throw createHttpError(400, "Email sudah digunakan");
+    user.email = email;
+  }
+
+  if (name) user.name = name;
+
+  return await user.save();
 }
 
 async function refreshTokenService(sentToken: string) {
@@ -81,7 +116,6 @@ async function refreshTokenService(sentToken: string) {
 
   const { token: currentToken, previousToken, lastRotatedAt } = user.refreshToken || {};
 
-  // SKENARIO 1: Token Valid (Normal Rotation)
   if (currentToken === sentToken) {
     const { accessToken, refreshToken: newRefreshToken } = generateAuthTokens(payload);
 
@@ -94,7 +128,6 @@ async function refreshTokenService(sentToken: string) {
     return { accessToken, refreshToken: newRefreshToken };
   }
 
-  // SKENARIO 2: Grace Period (Concurrency)
   if (previousToken === sentToken) {
     const diffInSeconds = (new Date().getTime() - (lastRotatedAt?.getTime() || 0)) / 1000;
 
@@ -105,7 +138,6 @@ async function refreshTokenService(sentToken: string) {
     }
   }
 
-  // SKENARIO 3: Token Reuse Detected
   user.refreshToken = { token: "", previousToken: "", lastRotatedAt: undefined };
   await user.save();
 
@@ -130,4 +162,39 @@ async function changePasswordService(userId: string, passwordData: TChangePasswo
   await user.save();
 }
 
-export default { changePasswordService, loginService, logoutService, refreshTokenService };
+async function forgotPasswordRequest(email: string) {
+  const user = await UserModel.findOne({ email, role: "admin" });
+
+  if (!user) {
+    throw createHttpError(404, "Akun Admin dengan email tersebut tidak ditemukan.");
+  }
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  user.resetPasswordToken = resetToken;
+  user.resetPasswordExpires = new Date(Date.now() + 3600000);
+
+  await user.save();
+
+  await sendForgotPasswordEmail(user.email!, user.username, resetToken);
+}
+
+async function resetPassword(token: string, newPassword: string) {
+  const user = await UserModel.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpires: { $gt: new Date() },
+  });
+
+  if (!user) {
+    throw createHttpError(400, "Token reset password tidak valid atau telah kedaluwarsa.");
+  }
+
+  user.password = await hashPassword(newPassword);
+
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+
+  await user.save();
+}
+
+export default { changePasswordService, loginService, logoutService, refreshTokenService, forgotPasswordRequest, resetPassword, updateProfileService };

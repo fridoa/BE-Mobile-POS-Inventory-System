@@ -7,6 +7,9 @@ export interface IUser {
   name: string;
   username: string;
   password: string;
+  email?: string;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   role: ROLES;
   isActive?: boolean;
   fcmToken?: string;
@@ -39,3 +42,10 @@ export interface IPaginationQuery {
   startDate?: string;
   endDate?: string;
 }
+
+export interface ISendMail {
+  to: string;
+  subject: string;
+  html: string;
+}
+
