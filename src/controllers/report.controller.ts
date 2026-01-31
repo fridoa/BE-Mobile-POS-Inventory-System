@@ -3,32 +3,55 @@ import { IAuthRequest } from "../utils/interfaces";
 import TransactionModel from "../models/transaction.model";
 import { error, pagination, success } from "../utils/response";
 import mongoose from "mongoose";
-import { diff } from "util";
 
 export default {
   async getSalesSummary(req: IAuthRequest, res: Response) {
     try {
       const { startDate, endDate, cashierId } = req.query;
-      const now = new Date();
+
+      const getWIBDate = () => {
+        const now = new Date();
+        return new Date(now.getTime() + 7 * 60 * 60 * 1000);
+      };
 
       let start: Date;
       let end: Date;
 
+      // 1. Logika Penentuan Rentang Waktu
       if (startDate && !isNaN(Date.parse(startDate as string))) {
-        start = new Date(startDate as string);
+        const s = new Date(startDate as string);
+        s.setUTCHours(0, 0, 0, 0);
+        start = new Date(s.getTime() - 7 * 60 * 60 * 1000);
       } else {
-        const firstTransaction = await TransactionModel.findOne().sort({ createdAt: 1 }).select("createdAt");
-        start = firstTransaction ? new Date(firstTransaction.createdAt ?? now) : now;
+        if (cashierId) {
+          const s = getWIBDate();
+          s.setUTCHours(0, 0, 0, 0);
+          start = new Date(s.getTime() - 7 * 60 * 60 * 1000);
+        } else {
+          const first = await TransactionModel.findOne().sort({ createdAt: 1 }).lean();
+          start = first?.createdAt ? new Date(first.createdAt) : new Date(getWIBDate().getTime() - 7 * 60 * 60 * 1000);
+        }
       }
-      start.setHours(0, 0, 0, 0);
 
       if (endDate && !isNaN(Date.parse(endDate as string))) {
-        end = new Date(endDate as string);
+        const e = new Date(endDate as string);
+        e.setUTCHours(23, 59, 59, 999);
+        end = new Date(e.getTime() - 7 * 60 * 60 * 1000);
       } else {
-        end = now;
+        const e = getWIBDate();
+        e.setUTCHours(23, 59, 59, 999);
+        end = new Date(e.getTime() - 7 * 60 * 60 * 1000);
       }
-      end.setHours(23, 59, 59, 999);
 
+      const matchStage: any = {
+        createdAt: { $gte: start, $lte: end },
+      };
+
+      if (cashierId && mongoose.Types.ObjectId.isValid(cashierId as string)) {
+        matchStage.cashierId = new mongoose.Types.ObjectId(cashierId as string);
+      }
+
+      // 2. Logika Perbandingan Periode (Trend)
       const diff = end.getTime() - start.getTime();
       const diffInDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
 
@@ -45,17 +68,22 @@ export default {
 
       const groupFormat = diffInDays > 31 ? "%Y-%m" : "%Y-%m-%d";
 
-      const matchStage: any = { createdAt: { $gte: start, $lte: end } };
-      if (cashierId && mongoose.Types.ObjectId.isValid(cashierId as string)) {
-        matchStage.cashierId = new mongoose.Types.ObjectId(cashierId as string);
-      }
-
+      // 3. Aggregation Utama (Tanpa $unwind!)
       const [currentData, previousData] = await Promise.all([
         TransactionModel.aggregate([
           { $match: matchStage },
           {
             $facet: {
-              transactionStats: [{ $group: { _id: null, totalRevenue: { $sum: "$totalAmount" }, totalTransactions: { $sum: 1 } } }],
+              mainStats: [
+                {
+                  $group: {
+                    _id: null,
+                    totalRevenue: { $sum: "$totalAmount" },
+                    totalProfit: { $sum: "$totalProfit" },
+                    totalTransactions: { $sum: 1 },
+                  },
+                },
+              ],
               dailyStats: [
                 {
                   $group: {
@@ -66,36 +94,44 @@ export default {
                 },
                 { $sort: { _id: 1 } },
               ],
-              itemStats: [{ $unwind: "$items" }, { $group: { _id: null, totalCost: { $sum: { $multiply: ["$items.costPrice", "$items.quantity"] } } } }],
             },
           },
           {
             $project: {
-              totalRevenue: { $ifNull: [{ $arrayElemAt: ["$transactionStats.totalRevenue", 0] }, 0] },
-              totalTransactions: { $ifNull: [{ $arrayElemAt: ["$transactionStats.totalTransactions", 0] }, 0] },
-              totalCost: { $ifNull: [{ $arrayElemAt: ["$itemStats.totalCost", 0] }, 0] },
+              totalRevenue: { $ifNull: [{ $arrayElemAt: ["$mainStats.totalRevenue", 0] }, 0] },
+              totalProfit: { $ifNull: [{ $arrayElemAt: ["$mainStats.totalProfit", 0] }, 0] },
+              totalTransactions: { $ifNull: [{ $arrayElemAt: ["$mainStats.totalTransactions", 0] }, 0] },
               dailyStats: 1,
             },
           },
         ]),
 
-        TransactionModel.aggregate([{ $match: { ...matchStage, createdAt: { $gte: prevStart, $lte: prevEnd } } }, { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } }]),
+        TransactionModel.aggregate([
+          {
+            $match: {
+              ...matchStage,
+              createdAt: { $gte: prevStart, $lte: prevEnd },
+            },
+          },
+          { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } },
+        ]),
       ]);
 
-      const current = currentData[0] || { totalRevenue: 0, totalCost: 0, totalTransactions: 0, dailyStats: [] };
+      const current = currentData[0] || { totalRevenue: 0, totalProfit: 0, totalTransactions: 0, dailyStats: [] };
       const revenue = current.totalRevenue;
-      const cost = current.totalCost;
+      const netProfit = current.totalProfit; // Langsung dari totalProfit root
+      const cost = revenue - netProfit; // Modal didapat dari selisih
       const prevRev = previousData[0]?.totalRevenue || 0;
 
+      // Kalkulasi Persentase
       const revenueTrend = prevRev > 0 ? ((revenue - prevRev) / prevRev) * 100 : revenue > 0 ? 100 : 0;
-      const netProfit = revenue - cost;
       const margin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
       const finalData = {
         totalRevenue: revenue,
         totalCost: cost,
         netProfit: netProfit,
-        margin: Number((((revenue - (current.totalCost || 0)) / (revenue || 1)) * 100).toFixed(2)),
+        margin: Number(margin.toFixed(2)),
         revenueTrend: Number(revenueTrend.toFixed(2)),
         totalTransactions: current.totalTransactions,
         dailyStats: current.dailyStats || [],
@@ -130,6 +166,7 @@ export default {
       const sortField = (sortBy as string) || "totalQty";
       const sortOrder = order === "asc" ? 1 : -1;
 
+      // Top Selling tetap butuh unwind karena menghitung per-produk
       const performanceResult = await TransactionModel.aggregate([
         { $match: matchStage },
         { $unwind: "$items" },
@@ -138,12 +175,13 @@ export default {
             _id: "$items.productId",
             name: { $first: "$items.name" },
             totalQty: { $sum: "$items.quantity" },
-            totalRevenue: { $sum: { $multiply: ["$items.price", "$items.quantity"] } },
+            totalRevenue: { $sum: "$items.subtotal" }, // Menggunakan field subtotal item
             totalCost: { $sum: { $multiply: ["$items.costPrice", "$items.quantity"] } },
           },
         },
         {
           $addFields: {
+            profit: { $subtract: ["$totalRevenue", "$totalCost"] },
             margin: {
               $cond: [{ $gt: ["$totalRevenue", 0] }, { $multiply: [{ $divide: [{ $subtract: ["$totalRevenue", "$totalCost"] }, "$totalRevenue"] }, 100] }, 0],
             },
@@ -152,7 +190,6 @@ export default {
         {
           $facet: {
             metadata: [{ $count: "total" }],
-
             data: [{ $sort: { [sortField]: sortOrder } }, { $skip: skip }, { $limit: limit }],
           },
         },
@@ -161,7 +198,7 @@ export default {
       const result = performanceResult[0].data;
       const totalCount = performanceResult[0].metadata[0]?.total || 0;
 
-      pagination(
+      return pagination(
         res,
         "Performa produk berhasil dianalisis",
         {
@@ -172,7 +209,7 @@ export default {
         result,
       );
     } catch (err) {
-      error(res, err, "Gagal menganalisis performa produk");
+      return error(res, err, "Gagal menganalisis performa produk");
     }
   },
 };
