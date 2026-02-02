@@ -10,6 +10,18 @@ import { notificationService } from "../services/notification.service";
 
 export default {
   async create(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Create Transaction'
+        #swagger.tags = ['Transaction']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateTransaction" }
+            }
+          }
+        }
+    */
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -112,6 +124,10 @@ export default {
   },
 
   async findAll(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Find All Transactions'
+        #swagger.tags = ['Transaction']
+    */
     const { page = 1, limit = 10, startDate, endDate, search = "" } = req.query as unknown as IPaginationQuery;
     try {
       const query: any = {};
@@ -151,6 +167,10 @@ export default {
   },
 
   async findOne(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Find One Transaction'
+        #swagger.tags = ['Transaction']
+    */
     try {
       const { id } = req.params;
       const result = await TransactionModel.findById(id).populate("cashierId", "name username role").exec();

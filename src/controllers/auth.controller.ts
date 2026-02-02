@@ -7,6 +7,18 @@ import { TChangePassword } from "../validators/auth.validate";
 
 export default {
   async loginController(req: Request, res: Response) {
+    /*
+        #swagger.summary = 'User Login'
+        #swagger.tags = ['Auth']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/Login" }
+            }
+          }
+        }
+      */
     try {
       const { fcmToken } = req.body;
 
@@ -18,6 +30,10 @@ export default {
   },
 
   async logoutController(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'User Logout'
+        #swagger.tags = ['Auth']
+    */
     try {
       const userId = req.user?._id;
       if (!userId) {
@@ -31,6 +47,18 @@ export default {
   },
 
   async updateProfileController(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Update Profile'
+        #swagger.tags = ['Auth']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateProfile" }
+            }
+          }
+        }
+      */
     try {
       const userId = req.user?._id;
       if (!userId) return unauthorized(res, "Sesi tidak valid");
@@ -47,6 +75,18 @@ export default {
   },
 
   async refreshTokenController(req: Request, res: Response) {
+    /*
+        #swagger.summary = 'Refresh Token'
+        #swagger.tags = ['Auth']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/RefreshToken" }
+            }
+          }
+        }
+    */
     try {
       const { refreshToken } = req.body;
       if (!refreshToken) {
@@ -61,6 +101,10 @@ export default {
   },
 
   async getProfileController(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Get Profile'
+        #swagger.tags = ['Auth']
+    */
     try {
       const userId = req.user?._id;
       if (!userId) {
@@ -79,6 +123,18 @@ export default {
   },
 
   async changePasswordController(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Change Password'
+        #swagger.tags = ['Auth']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ChangePassword" }
+            }
+          }
+        }
+    */
     try {
       const userId = req.user?._id;
       if (!userId) {
@@ -94,6 +150,18 @@ export default {
   },
 
   async forgotPasswordController(req: Request, res: Response) {
+    /*
+        #swagger.summary = 'Forgot Password'
+        #swagger.tags = ['Auth']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ForgotPassword" }
+            }
+          }
+        }
+    */
     try {
       const { email } = req.body;
 
@@ -115,6 +183,18 @@ export default {
   },
 
   async resetPasswordController(req: Request, res: Response) {
+    /*
+        #swagger.summary = 'Reset Password'
+        #swagger.tags = ['Auth']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ResetPassword" }
+            }
+          }
+        }
+    */
     try {
       const { token, newPassword } = req.body;
 
@@ -140,6 +220,10 @@ export default {
   },
 
   async resetRedirect(req: Request, res: Response) {
+    /*
+        #swagger.summary = 'Reset Password Redirect'
+        #swagger.tags = ['Auth']
+    */
     const { token } = req.query;
 
     const appLink = `femobilepostinventorysystem://resetPassword?token=${token}`;

@@ -5,6 +5,10 @@ import { success, error, pagination } from "../utils/response";
 
 export default {
   async findAll(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Find All Notifications'
+        #swagger.tags = ['Notification']
+    */
     try {
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 10;
@@ -37,6 +41,10 @@ export default {
   },
 
   async countUnread(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Count Unread Notifications'
+        #swagger.tags = ['Notification']
+    */
     try {
       const userId = req.user?._id;
       const count = await NotificationModel.countDocuments({ userId, isRead: false });
@@ -48,6 +56,10 @@ export default {
   },
 
   async markAsRead(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Mark Notification as Read'
+        #swagger.tags = ['Notification']
+    */
     try {
       const { id } = req.params;
       const userId = req.user?._id;
@@ -63,6 +75,10 @@ export default {
   },
 
   async markAllRead(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Mark All Notifications as Read'
+        #swagger.tags = ['Notification']
+    */
     try {
       const userId = req.user?._id;
       await NotificationModel.updateMany({ userId, isRead: false }, { isRead: true });

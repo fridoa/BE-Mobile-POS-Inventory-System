@@ -5,6 +5,18 @@ import { error, pagination, success } from "../utils/response";
 
 export default {
   async create(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Create Category'
+        #swagger.tags = ['Category']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateCategory" }
+            }
+          }
+        }
+    */
     try {
       const result = await CategoryModel.create(req.body);
       success(res, result, "Category created successfully");
@@ -14,6 +26,10 @@ export default {
   },
 
   async findAll(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Find All Categories'
+        #swagger.tags = ['Category']
+    */
     const { page = 1, limit = 10, search = "" } = req.query as unknown as IPaginationQuery;
     try {
       const query: any = { isActive: { $ne: false } };
@@ -38,6 +54,10 @@ export default {
   },
 
   async findOne(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Find One Category'
+        #swagger.tags = ['Category']
+    */
     try {
       const { id } = req.params;
       const result = await CategoryModel.findById(id);
@@ -51,6 +71,18 @@ export default {
   },
 
   async update(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Update Category'
+        #swagger.tags = ['Category']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateCategory" }
+            }
+          }
+        }
+    */
     try {
       const { id } = req.params;
       const result = await CategoryModel.findByIdAndUpdate(id, req.body, {
@@ -71,6 +103,10 @@ export default {
   },
 
   async remove(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Remove Category'
+        #swagger.tags = ['Category']
+    */
     try {
       const { id } = req.params;
       const result = await CategoryModel.findByIdAndUpdate(id, { isActive: false }, { new: true });
