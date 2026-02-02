@@ -5,6 +5,18 @@ import { error, pagination, success } from "../utils/response";
 
 export default {
   async create(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Create User'
+        #swagger.tags = ['User']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateUser" }
+            }
+          }
+        }
+    */
     try {
       const result = await UserModel.create(req.body);
       success(res, result, "User created successfully");
@@ -14,6 +26,10 @@ export default {
   },
 
   async findAll(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Find All Users'
+        #swagger.tags = ['User']
+    */
     const { page = 1, limit = 10, search = "" } = req.query as unknown as IPaginationQuery;
     try {
       const query: any = { isActive: { $ne: false } };
@@ -47,6 +63,10 @@ export default {
   },
 
   async findOne(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Find One User'
+        #swagger.tags = ['User']
+    */
     try {
       const { id } = req.params;
       const result = await UserModel.findById(id);
@@ -60,6 +80,18 @@ export default {
   },
 
   async update(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Update User'
+        #swagger.tags = ['User']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateUser" }
+            }
+          }
+        }
+    */
     try {
       const { id } = req.params;
       const result = await UserModel.findByIdAndUpdate(id, req.body, {
@@ -78,6 +110,18 @@ export default {
   },
 
   async updateFCMToken(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Update FCM Token'
+        #swagger.tags = ['User']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateFCMToken" }
+            }
+          }
+        }
+    */
     try {
       const { fcmToken } = req.body;
 
@@ -104,6 +148,10 @@ export default {
   },
 
   async remove(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Remove User'
+        #swagger.tags = ['User']
+    */
     try {
       const { id } = req.params;
       const result = await UserModel.findByIdAndUpdate(id, { isActive: false }, { new: true });

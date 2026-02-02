@@ -11,6 +11,18 @@ import { notificationService } from "../services/notification.service";
 
 const ProductController = {
   async create(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Create Product'
+        #swagger.tags = ['Product']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateProduct" }
+            }
+          }
+        }
+    */
     try {
       const { basePrice, costPrice, discount, ...rest } = req.body;
 
@@ -37,6 +49,10 @@ const ProductController = {
   },
 
   async findAll(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Find All Products'
+        #swagger.tags = ['Product']
+    */
     const { page = 1, limit = 10, search = "", category = "", stockStatus = "", name = "", sku = "" } = req.query as unknown as IPaginationQuery;
 
     try {
@@ -82,6 +98,10 @@ const ProductController = {
   },
 
   async findOne(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Find One Product'
+        #swagger.tags = ['Product']
+    */
     try {
       const { id } = req.params;
       const result = await ProductModel.findById(id).populate("category", "name");
@@ -95,6 +115,10 @@ const ProductController = {
   },
 
   async findBySKU(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Find One Product by SKU'
+        #swagger.tags = ['Product']
+    */
     try {
       let { sku } = req.params;
 
@@ -116,6 +140,18 @@ const ProductController = {
   },
 
   async update(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Update Product'
+        #swagger.tags = ['Product']
+        #swagger.requestBody = {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateProduct" }
+            }
+          }
+        }
+    */
     try {
       const { id } = req.params;
       const { basePrice, costPrice, discount, stock, name, sku, ...rest } = req.body;
@@ -199,6 +235,10 @@ const ProductController = {
   },
 
   async remove(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Remove Product'
+        #swagger.tags = ['Product']
+    */
     try {
       const { id } = req.params;
       const result = await ProductModel.findByIdAndUpdate(id, { isActive: false }, { new: true });

@@ -1,10 +1,12 @@
 import express from "express";
+import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import router from "./routes/api";
 import connect from "./utils/database";
 import { env } from "./utils/env";
 import { initScheduledJobs } from "./utils/scheduler";
+import swaggerDocs from "./docs/route";
 
 dotenv.config();
 
@@ -16,6 +18,10 @@ async function init() {
 
     const app = express();
 
+    app.use(cors({
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    }));
     app.use(bodyParser.json());
 
     const { PORT } = env;
@@ -30,6 +36,8 @@ async function init() {
     app.use("/", router);
 
     app.use("/api/v1", router);
+
+    swaggerDocs(app);
 
     initScheduledJobs();
 

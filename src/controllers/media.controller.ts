@@ -4,6 +4,10 @@ import { error, success } from "../utils/response";
 
 export default {
   async single(req: Request, res: Response) {
+    /*
+        #swagger.summary = 'Upload Single File'
+        #swagger.tags = ['Media']
+    */
     if (!req.file) {
       return error(res, "No file uploaded", "File upload failed");
     }
@@ -17,6 +21,10 @@ export default {
   },
 
   async multiple(req: Request, res: Response) {
+    /*
+        #swagger.summary = 'Upload Multiple Files'
+        #swagger.tags = ['Media']
+    */
     if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
       return error(res, "No files uploaded", "Files upload failed");
     }
@@ -30,6 +38,10 @@ export default {
   },
 
   async remove(req: Request, res: Response) {
+    /*
+        #swagger.summary = 'Remove File'
+        #swagger.tags = ['Media']
+    */
     const { fileId } = req.body as { fileId: string };
 
     if (!fileId) {

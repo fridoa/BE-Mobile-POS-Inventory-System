@@ -6,6 +6,10 @@ import mongoose from "mongoose";
 
 export default {
   async getSalesSummary(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Get Sales Summary'
+        #swagger.tags = ['Report']
+    */
     try {
       const { startDate, endDate, cashierId } = req.query;
 
@@ -144,6 +148,10 @@ export default {
   },
 
   async getTopSellingProducts(req: IAuthRequest, res: Response) {
+    /*
+        #swagger.summary = 'Get Top Selling Products'
+        #swagger.tags = ['Report']
+    */
     try {
       const limit = Number(req.query.limit) || 20;
       const page = Number(req.query.page) || 1;
