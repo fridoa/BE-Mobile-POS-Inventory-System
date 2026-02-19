@@ -13,7 +13,7 @@ export const productSchema = Yup.object().shape({
   category: Yup.string().required("Category ID is required").trim(),
   imageUrl: Yup.string().url("Image URL must be a valid URL").nullable(),
   isActive: Yup.boolean(),
-  sku: Yup.string().required("SKU is required").trim(),
+  sku: Yup.string().nullable().optional().trim(),
 });
 
 export const productUpdateSchema = Yup.object().shape({
