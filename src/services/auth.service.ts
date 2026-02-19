@@ -169,6 +169,10 @@ async function forgotPasswordRequest(email: string) {
     throw createHttpError(404, "Akun Admin dengan email tersebut tidak ditemukan.");
   }
 
+  if (user.resetPasswordExpires && user.resetPasswordExpires > new Date(Date.now() - 60000)) {
+    throw createHttpError(429, "Tunggu 1 menit sebelum request ulang.");
+  }
+
   const resetToken = crypto.randomBytes(32).toString("hex");
 
   user.resetPasswordToken = resetToken;
