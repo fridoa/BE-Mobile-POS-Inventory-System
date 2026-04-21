@@ -141,9 +141,9 @@ export default {
         dailyStats: current.dailyStats || [],
       };
 
-      return success(res, finalData, "Laporan penjualan berhasil dihitung");
+      return success(res, finalData, "Laporan transaksi berhasil dihitung");
     } catch (err) {
-      return error(res, err, "Gagal menghitung laporan penjualan");
+      return error(res, err, "Gagal menghitung laporan transaksi");
     }
   },
 
