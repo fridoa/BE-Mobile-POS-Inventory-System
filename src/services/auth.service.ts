@@ -85,7 +85,6 @@ async function updateProfileService(userId: string, profileData: Partial<{ name:
   }
 
   if (email && email !== user.email) {
-    if (user.role !== "admin") throw createHttpError(403, "Hanya Admin yang bisa memiliki email");
     const existingEmail = await UserModel.findOne({ email });
     if (existingEmail) throw createHttpError(400, "Email sudah digunakan");
     user.email = email;
