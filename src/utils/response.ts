@@ -39,6 +39,10 @@ export const error = (res: Response, error: unknown, defaultMessage: string, def
     const key = mongoError.keyValue ? Object.keys(mongoError.keyValue)[0] : "Data";
     message = `Data ${key} sudah terdaftar di sistem.`;
   } else if (error instanceof Error) {
+    const httpStatus = (error as any)?.statusCode || (error as any)?.status;
+    if (typeof httpStatus === "number") {
+      status = httpStatus;
+    }
     message = error.message;
   }
 
