@@ -162,20 +162,48 @@ async function changePasswordService(userId: string, passwordData: TChangePasswo
 }
 
 async function forgotPasswordRequest(email: string) {
-  const user = await UserModel.findOne({ email, role: "admin" });
+  const user = await UserModel.findOne({ email });
 
-  if (!user) {
-    throw createHttpError(404, "Akun Admin dengan email tersebut tidak ditemukan.");
+  // Security-first: jangan bocorkan apakah email terdaftar atau role user.
+  // Hanya akun admin yang diproses untuk reset password via email.
+  if (!user || user.role !== "admin") {
+    return;
   }
 
-  if (user.resetPasswordExpires && user.resetPasswordExpires > new Date(Date.now() - 60000)) {
-    throw createHttpError(429, "Tunggu 1 menit sebelum request ulang.");
+  const now = new Date();
+  const nowMs = now.getTime();
+  const ONE_MINUTE_MS = 60 * 1000;
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+  if (user.forgotPasswordBlockedUntil && user.forgotPasswordBlockedUntil > now) {
+    return;
+  }
+
+  if (user.forgotPasswordLastRequestAt) {
+    const diffMs = nowMs - user.forgotPasswordLastRequestAt.getTime();
+
+    if (diffMs < ONE_MINUTE_MS) {
+      const nextAttempts = (user.forgotPasswordAttempts || 0) + 1;
+
+      if (nextAttempts > 3) {
+        user.forgotPasswordBlockedUntil = new Date(nowMs + ONE_DAY_MS);
+        user.forgotPasswordAttempts = 0;
+      } else {
+        user.forgotPasswordAttempts = nextAttempts;
+      }
+
+      await user.save();
+      return;
+    }
   }
 
   const resetToken = crypto.randomBytes(32).toString("hex");
 
   user.resetPasswordToken = resetToken;
   user.resetPasswordExpires = new Date(Date.now() + 3600000);
+  user.forgotPasswordLastRequestAt = now;
+  user.forgotPasswordAttempts = 0;
+  user.forgotPasswordBlockedUntil = undefined;
 
   await user.save();
 

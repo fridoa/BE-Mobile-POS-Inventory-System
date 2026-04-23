@@ -5,6 +5,9 @@ import { IAuthRequest } from "../utils/interfaces";
 import UserModel from "../models/user.model";
 import { TChangePassword } from "../validators/auth.validate";
 
+const FORGOT_PASSWORD_SECURITY_MESSAGE =
+  "Jika email yang Anda masukkan terdaftar sebagai Admin, instruksi pemulihan kata sandi telah dikirim ke kotak masuk Anda. Jika Anda adalah Kasir, silakan hubungi Admin toko untuk melakukan reset kata sandi";
+
 export default {
   async loginController(req: Request, res: Response) {
     /*
@@ -170,15 +173,9 @@ export default {
       }
 
       await authService.forgotPasswordRequest(email);
-
-      res.status(200).json({
-        message: "Instruksi reset password telah dikirim ke email Anda.",
-      });
+      success(res, null, FORGOT_PASSWORD_SECURITY_MESSAGE);
     } catch (error: any) {
-      res.status(error.status || 500).json({
-        message: error.message || "Terjadi kesalahan pada server.",
-        data: null,
-      });
+      error(res, error, "Terjadi kesalahan pada server.");
     }
   },
 
