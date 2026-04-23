@@ -51,4 +51,3 @@ export interface ISendMail {
   subject: string;
   html: string;
 }
-
