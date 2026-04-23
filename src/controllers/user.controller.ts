@@ -104,8 +104,9 @@ export default {
       success(res, result, "Berhasil memperbarui user");
     } catch (err) {
       if (err instanceof Error && "code" in err && err.code === 11000) {
-        return error(res, { message: "Username sudah digunakan." }, "Gagal memperbarui user");
+        return error(res, { message: "Username atau email sudah digunakan." }, "Gagal memperbarui user");
       }
+      error(res, err, "Gagal memperbarui user");
     }
   },
 
