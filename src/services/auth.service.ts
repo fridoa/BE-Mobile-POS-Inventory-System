@@ -9,6 +9,25 @@ import crypto from "crypto";
 import { sendForgotPasswordEmail } from "../utils/mail/mail";
 import { hashPassword } from "../utils/password";
 
+const FORGOT_PASSWORD_COOLDOWN_MS = 10 * 60 * 1000;
+const FORGOT_PASSWORD_DUMMY_DELAY_MIN_MS = 1000;
+const FORGOT_PASSWORD_DUMMY_DELAY_MAX_MS = 2000;
+
+const forgotPasswordCooldownMap = new Map<string, number>();
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getRandomDelayMs = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+const formatRemainingTime = (remainingMs: number) => {
+  const totalSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+};
+
 async function loginService(userData: TLogin, fcmToken?: string) {
   const { username, password } = userData;
 
@@ -162,50 +181,42 @@ async function changePasswordService(userId: string, passwordData: TChangePasswo
 }
 
 async function forgotPasswordRequest(email: string) {
-  const user = await UserModel.findOne({ email });
+  const normalizedEmail = normalizeEmail(email);
+  const nowMs = Date.now();
+
+  // 1) Cooldown check (tanpa query database)
+  const blockedUntil = forgotPasswordCooldownMap.get(normalizedEmail);
+  if (blockedUntil && blockedUntil > nowMs) {
+    const remainingMs = blockedUntil - nowMs;
+    const remainingSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+    const cooldownError = createHttpError.TooManyRequests(`Percobaan terlalu sering. Coba lagi dalam ${formatRemainingTime(remainingMs)}.`);
+    (cooldownError as any).remainingSeconds = remainingSeconds;
+    throw cooldownError;
+  }
+
+  if (blockedUntil && blockedUntil <= nowMs) {
+    forgotPasswordCooldownMap.delete(normalizedEmail);
+  }
+
+  // 2) Pengecekan database email + role admin
+  const user = await UserModel.findOne({ email: normalizedEmail });
 
   // Security-first: jangan bocorkan apakah email terdaftar atau role user.
-  // Hanya akun admin yang diproses untuk reset password via email.
+  // Jika bukan admin atau tidak terdaftar, lakukan dummy delay lalu keluar.
   if (!user || user.role !== "admin") {
+    await sleep(getRandomDelayMs(FORGOT_PASSWORD_DUMMY_DELAY_MIN_MS, FORGOT_PASSWORD_DUMMY_DELAY_MAX_MS));
     return;
   }
 
-  const now = new Date();
-  const nowMs = now.getTime();
-  const ONE_MINUTE_MS = 60 * 1000;
-  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
-  if (user.forgotPasswordBlockedUntil && user.forgotPasswordBlockedUntil > now) {
-    return;
-  }
-
-  if (user.forgotPasswordLastRequestAt) {
-    const diffMs = nowMs - user.forgotPasswordLastRequestAt.getTime();
-
-    if (diffMs < ONE_MINUTE_MS) {
-      const nextAttempts = (user.forgotPasswordAttempts || 0) + 1;
-
-      if (nextAttempts > 3) {
-        user.forgotPasswordBlockedUntil = new Date(nowMs + ONE_DAY_MS);
-        user.forgotPasswordAttempts = 0;
-      } else {
-        user.forgotPasswordAttempts = nextAttempts;
-      }
-
-      await user.save();
-      return;
-    }
-  }
-
+  // 3) Proses pembuatan token + kirim email
   const resetToken = crypto.randomBytes(32).toString("hex");
 
   user.resetPasswordToken = resetToken;
   user.resetPasswordExpires = new Date(Date.now() + 3600000);
-  user.forgotPasswordLastRequestAt = now;
-  user.forgotPasswordAttempts = 0;
-  user.forgotPasswordBlockedUntil = undefined;
 
   await user.save();
+
+  forgotPasswordCooldownMap.set(normalizedEmail, nowMs + FORGOT_PASSWORD_COOLDOWN_MS);
 
   await sendForgotPasswordEmail(user.email!, user.username, resetToken);
 }
