@@ -198,6 +198,10 @@ async function forgotPasswordRequest(email: string) {
     forgotPasswordCooldownMap.delete(normalizedEmail);
   }
 
+  // Set cooldown untuk SEMUA request yang lolos pengecekan awal,
+  // termasuk email tidak terdaftar / role kasir.
+  forgotPasswordCooldownMap.set(normalizedEmail, nowMs + FORGOT_PASSWORD_COOLDOWN_MS);
+
   // 2) Pengecekan database email + role admin
   const user = await UserModel.findOne({ email: normalizedEmail });
 
@@ -215,8 +219,6 @@ async function forgotPasswordRequest(email: string) {
   user.resetPasswordExpires = new Date(Date.now() + 3600000);
 
   await user.save();
-
-  forgotPasswordCooldownMap.set(normalizedEmail, nowMs + FORGOT_PASSWORD_COOLDOWN_MS);
 
   await sendForgotPasswordEmail(user.email!, user.username, resetToken);
 }
