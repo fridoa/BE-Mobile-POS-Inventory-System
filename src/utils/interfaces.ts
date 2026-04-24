@@ -10,9 +10,6 @@ export interface IUser {
   email?: string;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
-  forgotPasswordLastRequestAt?: Date;
-  forgotPasswordAttempts?: number;
-  forgotPasswordBlockedUntil?: Date;
   role: ROLES;
   isActive?: boolean;
   fcmToken?: string;

@@ -27,9 +27,6 @@ const UserSchema = new Schema<IUser>(
     },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
-    forgotPasswordLastRequestAt: { type: Date },
-    forgotPasswordAttempts: { type: Number, default: 0 },
-    forgotPasswordBlockedUntil: { type: Date },
     role: {
       type: String,
       enum: [ROLES.ADMIN, ROLES.KASIR],

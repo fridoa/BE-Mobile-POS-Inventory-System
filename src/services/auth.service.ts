@@ -8,12 +8,11 @@ import { GRACE_PERIOD_SECONDS } from "../utils/constants";
 import crypto from "crypto";
 import { sendForgotPasswordEmail } from "../utils/mail/mail";
 import { hashPassword } from "../utils/password";
+import ForgotPasswordCooldownModel from "../models/forgot-password-cooldown.model";
 
 const FORGOT_PASSWORD_COOLDOWN_MS = 10 * 60 * 1000;
 const FORGOT_PASSWORD_DUMMY_DELAY_MIN_MS = 1000;
 const FORGOT_PASSWORD_DUMMY_DELAY_MAX_MS = 2000;
-
-const forgotPasswordCooldownMap = new Map<string, number>();
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -183,24 +182,38 @@ async function changePasswordService(userId: string, passwordData: TChangePasswo
 async function forgotPasswordRequest(email: string) {
   const normalizedEmail = normalizeEmail(email);
   const nowMs = Date.now();
+  const now = new Date(nowMs);
 
   // 1) Cooldown check (tanpa query database)
-  const blockedUntil = forgotPasswordCooldownMap.get(normalizedEmail);
-  if (blockedUntil && blockedUntil > nowMs) {
-    const remainingMs = blockedUntil - nowMs;
+  const cooldownData = await ForgotPasswordCooldownModel.findOne({ emailKey: normalizedEmail }).select("blockedUntil").lean();
+  const blockedUntilMs = cooldownData?.blockedUntil ? new Date(cooldownData.blockedUntil).getTime() : 0;
+
+  if (blockedUntilMs > nowMs) {
+    const remainingMs = blockedUntilMs - nowMs;
     const remainingSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
     const cooldownError = createHttpError.TooManyRequests(`Percobaan terlalu sering. Coba lagi dalam ${formatRemainingTime(remainingMs)}.`);
     (cooldownError as any).remainingSeconds = remainingSeconds;
     throw cooldownError;
   }
 
-  if (blockedUntil && blockedUntil <= nowMs) {
-    forgotPasswordCooldownMap.delete(normalizedEmail);
-  }
-
   // Set cooldown untuk SEMUA request yang lolos pengecekan awal,
   // termasuk email tidak terdaftar / role kasir.
-  forgotPasswordCooldownMap.set(normalizedEmail, nowMs + FORGOT_PASSWORD_COOLDOWN_MS);
+  await ForgotPasswordCooldownModel.findOneAndUpdate(
+    { emailKey: normalizedEmail },
+    {
+      $set: {
+        blockedUntil: new Date(nowMs + FORGOT_PASSWORD_COOLDOWN_MS),
+      },
+      $setOnInsert: {
+        createdAt: now,
+      },
+    },
+    {
+      upsert: true,
+      setDefaultsOnInsert: true,
+      new: true,
+    },
+  );
 
   // 2) Pengecekan database email + role admin
   const user = await UserModel.findOne({ email: normalizedEmail });
