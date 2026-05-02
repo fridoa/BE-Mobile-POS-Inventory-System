@@ -166,12 +166,12 @@ async function changePasswordService(userId: string, passwordData: TChangePasswo
 
   const user = await UserModel.findById(userId).select("+password");
   if (!user) {
-    throw new createHttpError.NotFound("User not found");
+    throw new createHttpError.NotFound("Pengguna tidak ditemukan");
   }
 
   const isOldPasswordValid = await verifyPassword(oldPassword, user.password);
   if (!isOldPasswordValid) {
-    throw new createHttpError.Unauthorized("Old password is incorrect");
+    throw new createHttpError.Unauthorized("Kata sandi lama salah");
   }
 
   user.password = newPassword;
