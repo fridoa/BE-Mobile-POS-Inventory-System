@@ -13,7 +13,7 @@ export interface IProduct {
   category: Types.ObjectId;
   imageUrl?: string;
   imageFileId?: string;
-  isActive: boolean;
+  deletedAt: Date | null;
   sku: string;
 }
 
@@ -22,7 +22,6 @@ const ProductSchema = new Schema<IProduct>(
     name: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     basePrice: {
@@ -72,28 +71,31 @@ const ProductSchema = new Schema<IProduct>(
       type: String,
       default: "",
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
     sku: {
       type: String,
-      unique: true,
       sparse: true,
       trim: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }
 );
 
 ProductSchema.index({ category: 1 });
-ProductSchema.index({ isActive: 1 });
+ProductSchema.index({ deletedAt: 1 });
 ProductSchema.index({ createdAt: -1 });
 ProductSchema.index({ category: 1, name: 1 });
 ProductSchema.index({ name: "text", sku: "text" });
 
+// Partial Unique Index: nama & SKU hanya unik untuk produk yang belum dihapus
+ProductSchema.index({ name: 1 }, { unique: true, partialFilterExpression: { deletedAt: null } });
+ProductSchema.index({ sku: 1 }, { unique: true, sparse: true, partialFilterExpression: { deletedAt: null } });
+
 ProductSchema.pre(/^find/, async function (this: Query<any, any>) {
-  this.where({ isActive: { $ne: false } });
+  this.where({ deletedAt: null });
 });
 
 const ProductModel = mongoose.model<IProduct>("Product", ProductSchema);

@@ -38,7 +38,7 @@ async function loginService(userData: TLogin, fcmToken?: string) {
     throw new createHttpError.Unauthorized("Invalid username or password");
   }
 
-  if (user.isActive === false) {
+  if (user.deletedAt) {
     throw new createHttpError.Forbidden("Akun Anda telah dinonaktifkan. Silahkan hubungi administrator.");
   }
 

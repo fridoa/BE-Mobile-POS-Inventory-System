@@ -12,7 +12,6 @@ const UserSchema = new Schema<IUser>(
     username: {
       type: String,
       required: true,
-      unique: true,
     },
     password: {
       type: String,
@@ -20,8 +19,6 @@ const UserSchema = new Schema<IUser>(
     },
     email: {
       type: String,
-      unique: true,
-      sparse: true,
       lowercase: true,
       trim: true,
     },
@@ -33,9 +30,9 @@ const UserSchema = new Schema<IUser>(
       required: true,
       default: ROLES.KASIR,
     },
-    isActive: {
-      type: Boolean,
-      default: true,
+    deletedAt: {
+      type: Date,
+      default: null,
     },
     fcmToken: {
       type: String,
@@ -49,6 +46,10 @@ const UserSchema = new Schema<IUser>(
   },
   { timestamps: true },
 );
+
+// Partial Unique Index: username & email hanya unik untuk user yang belum dihapus
+UserSchema.index({ username: 1 }, { unique: true, partialFilterExpression: { deletedAt: null } });
+UserSchema.index({ email: 1 }, { unique: true, sparse: true, partialFilterExpression: { deletedAt: null } });
 
 UserSchema.pre("save", async function () {
   const user = this;

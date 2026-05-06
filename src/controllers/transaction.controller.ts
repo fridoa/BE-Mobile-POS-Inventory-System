@@ -34,7 +34,7 @@ export default {
       const transactionItems = [];
 
       for (const item of items) {
-        const product = await ProductModel.findOneAndUpdate({ _id: item.productId, isActive: true, stock: { $gte: item.quantity } }, { $inc: { stock: -item.quantity } }, { new: true, session });
+        const product = await ProductModel.findOneAndUpdate({ _id: item.productId, deletedAt: null, stock: { $gte: item.quantity } }, { $inc: { stock: -item.quantity } }, { new: true, session });
 
         if (!product) {
           throw new Error(`Produk ${item.productId} tidak ditemukan atau stok tidak mencukupi`);

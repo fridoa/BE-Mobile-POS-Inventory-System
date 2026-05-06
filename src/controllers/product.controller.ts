@@ -56,7 +56,7 @@ const ProductController = {
     const { page = 1, limit = 10, search = "", category = "", stockStatus = "", name = "", sku = "" } = req.query as unknown as IPaginationQuery;
 
     try {
-      const query: any = { isActive: { $ne: false } };
+      const query: any = { deletedAt: null };
       const cleanSearch = search.trim();
 
       if (sku) query.sku = sku;
@@ -126,7 +126,7 @@ const ProductController = {
 
       const result = await ProductModel.findOne({
         sku: cleanSKU,
-        isActive: { $ne: false },
+        deletedAt: null,
       }).populate("category", "name");
 
       if (!result) {
@@ -241,7 +241,7 @@ const ProductController = {
     */
     try {
       const { id } = req.params;
-      const result = await ProductModel.findByIdAndUpdate(id, { isActive: false }, { new: true });
+      const result = await ProductModel.findByIdAndUpdate(id, { deletedAt: new Date() }, { new: true });
 
       if (!result) return error(res, null, "Produk tidak ditemukan", 404);
 

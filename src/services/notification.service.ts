@@ -14,7 +14,7 @@ interface SendNotifParams {
 export const notificationService = {
   async send(params: SendNotifParams) {
     try {
-      let query: any = { isActive: true };
+      let query: any = { deletedAt: null };
 
       if (params.userId && params.userId.length > 0) {
         query._id = { $in: params.userId };

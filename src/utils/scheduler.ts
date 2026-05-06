@@ -20,7 +20,7 @@ export const initScheduledJobs = () => {
             $gte: todayStart,
             $lte: sevenDaysFromNow,
           },
-          isActive: true,
+          deletedAt: null,
         }).select("name expiryDate");
 
         if (expiringProducts.length === 0) return;

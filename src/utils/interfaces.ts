@@ -11,7 +11,7 @@ export interface IUser {
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
   role: ROLES;
-  isActive?: boolean;
+  deletedAt?: Date | null;
   fcmToken?: string;
   refreshToken?: {
     token: string;

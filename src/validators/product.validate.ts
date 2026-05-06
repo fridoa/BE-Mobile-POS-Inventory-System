@@ -12,7 +12,6 @@ export const productSchema = Yup.object().shape({
   discount: Yup.number().min(0, "Discount must be at least 0").max(100, "Discount cannot exceed 100"),
   category: Yup.string().required("Category ID is required").trim(),
   imageUrl: Yup.string().url("Image URL must be a valid URL").nullable(),
-  isActive: Yup.boolean(),
   sku: Yup.string().nullable().optional().trim(),
 });
 
@@ -27,7 +26,6 @@ export const productUpdateSchema = Yup.object().shape({
   discount: Yup.number().min(0, "Discount must be at least 0").max(100, "Discount cannot exceed 100"),
   category: Yup.string().trim(),
   imageUrl: Yup.string().url("Image URL must be a valid URL").nullable(),
-  isActive: Yup.boolean(),
   sku: Yup.string().trim(),
 });
 

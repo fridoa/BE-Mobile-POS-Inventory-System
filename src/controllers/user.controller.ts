@@ -32,7 +32,7 @@ export default {
     */
     const { page = 1, limit = 10, search = "" } = req.query as unknown as IPaginationQuery;
     try {
-      const query: any = { isActive: { $ne: false } };
+      const query: any = { deletedAt: null };
       if (search) {
         Object.assign(query, {
           $or: [
@@ -155,7 +155,7 @@ export default {
     */
     try {
       const { id } = req.params;
-      const result = await UserModel.findByIdAndUpdate(id, { isActive: false }, { new: true });
+      const result = await UserModel.findByIdAndUpdate(id, { deletedAt: new Date() }, { new: true });
       if (!result) {
         return error(res, null, "User not found");
       }
