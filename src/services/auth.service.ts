@@ -48,7 +48,8 @@ async function loginService(userData: TLogin, fcmToken?: string) {
   };
   const token = generateAuthTokens(payload);
 
-  if (fcmToken) {
+  // Hanya admin yang boleh menyimpan FCM token untuk notifikasi
+  if (fcmToken && user.role === "admin") {
     await UserModel.updateMany({ fcmToken: fcmToken }, { $unset: { fcmToken: 1 } });
     user.fcmToken = fcmToken;
   }

@@ -25,7 +25,7 @@ router.post("/auth/refresh-token", authController.refreshTokenController);
 router.get("/auth/profile", authMiddleware.authorization, authController.getProfileController);
 router.patch("/auth/update-profile", authMiddleware.authorization, validatorMiddleware.validate(updateProfileSchema), authController.updateProfileController);
 router.put("/auth/change-password", authMiddleware.authorization, authMiddleware.validateChangePassword, authController.changePasswordController);
-router.patch("/auth/update-fcm-token", authMiddleware.authorization, userController.updateFCMToken);
+router.patch("/auth/update-fcm-token", authMiddleware.authorization, aclMiddleware([ROLES.ADMIN]), userController.updateFCMToken);
 router.post("/auth/forgot-password", validatorMiddleware.validate(forgotPasswordSchema), authController.forgotPasswordController);
 router.post("/auth/reset-password", validatorMiddleware.validate(resetPasswordSchema), authController.resetPasswordController);
 router.get("/auth/reset-redirect", authController.resetRedirect);
