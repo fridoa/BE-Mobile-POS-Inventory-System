@@ -52,22 +52,26 @@ export default {
           {
             $lookup: {
               from: "products",
-              localField: "_id",
-              foreignField: "category",
+              let: { categoryId: "$_id" },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ["$category", "$$categoryId"] },
+                        { $eq: [{ $ifNull: ["$deletedAt", null] }, null] },
+                      ],
+                    },
+                  },
+                },
+              ],
               as: "productsData",
             },
           },
           {
             $addFields: {
-              productCount: {
-                $size: {
-                  $filter: {
-                    input: "$productsData",
-                    as: "product",
-                    cond: { $eq: ["$$product.deletedAt", null] },
-                  },
-                },
-              },
+              productCount: { $size: "$productsData" },
+              id: "$_id",
             },
           },
           { $project: { productsData: 0 } },
