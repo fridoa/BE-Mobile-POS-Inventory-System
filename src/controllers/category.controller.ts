@@ -2,6 +2,7 @@ import { Response } from "express";
 import { IAuthRequest, IPaginationQuery } from "../utils/interfaces";
 import CategoryModel from "../models/category.model";
 import { error, pagination, success } from "../utils/response";
+import uploader from "../utils/uploader";
 
 export default {
   async create(req: IAuthRequest, res: Response) {
@@ -18,7 +19,12 @@ export default {
         }
     */
     try {
-      const result = await CategoryModel.create(req.body);
+      const { name, imageUrl, imageFileId } = req.body;
+      const result = await CategoryModel.create({
+        name,
+        imageUrl: imageUrl || null,
+        imageFileId: imageFileId || null,
+      });
       success(res, result, "Category created successfully");
     } catch (err) {
       error(res, err, "Error creating category");
@@ -41,11 +47,34 @@ export default {
 
       const [count, result] = await Promise.all([
         CategoryModel.countDocuments(query),
-        CategoryModel.find(query)
-          .limit(limit)
-          .skip((page - 1) * limit)
-          .sort({ createdAt: -1 })
-          .exec(),
+        CategoryModel.aggregate([
+          { $match: query },
+          {
+            $lookup: {
+              from: "products",
+              localField: "_id",
+              foreignField: "category",
+              as: "productsData",
+            },
+          },
+          {
+            $addFields: {
+              productCount: {
+                $size: {
+                  $filter: {
+                    input: "$productsData",
+                    as: "product",
+                    cond: { $eq: ["$$product.deletedAt", null] },
+                  },
+                },
+              },
+            },
+          },
+          { $project: { productsData: 0 } },
+          { $sort: { createdAt: -1 } },
+          { $skip: (Number(page) - 1) * Number(limit) },
+          { $limit: Number(limit) },
+        ]).exec(),
       ]);
       pagination(res, "Success fetch all categories ", { total: count, totalPages: Math.ceil(count / limit), currentPage: Number(page) }, result);
     } catch (err) {
@@ -85,7 +114,25 @@ export default {
     */
     try {
       const { id } = req.params;
-      const result = await CategoryModel.findByIdAndUpdate(id, req.body, {
+      const { name, imageUrl, imageFileId } = req.body;
+
+      const oldCategory = await CategoryModel.findById(id);
+      if (!oldCategory) return error(res, null, "Category not found");
+
+      // Hapus gambar lama dari ImageKit jika gambar diganti atau dihapus
+      const isImageReplaced = imageFileId && imageFileId !== oldCategory.imageFileId;
+      const isImageRemoved = imageUrl === "" || imageUrl === null;
+      if ((isImageReplaced || isImageRemoved) && oldCategory.imageFileId) {
+        await uploader.removeFile(oldCategory.imageFileId).catch((e: Error) =>
+          console.error("[ImageKit] Gagal hapus gambar lama kategori:", e.message)
+        );
+      }
+
+      const updatePayload: any = { name };
+      if (imageUrl !== undefined) updatePayload.imageUrl = imageUrl || null;
+      if (imageFileId !== undefined) updatePayload.imageFileId = imageFileId || null;
+
+      const result = await CategoryModel.findByIdAndUpdate(id, updatePayload, {
         new: true,
         runValidators: true,
       });
@@ -99,6 +146,7 @@ export default {
       if (err instanceof Error && "code" in err && err.code === 11000) {
         return error(res, { message: "Category name already exists." }, "Failed to update category");
       }
+      error(res, err, "Failed to update category");
     }
   },
 
@@ -109,6 +157,15 @@ export default {
     */
     try {
       const { id } = req.params;
+
+      // Hapus gambar dari ImageKit sebelum soft delete
+      const category = await CategoryModel.findById(id);
+      if (category?.imageFileId) {
+        await uploader.removeFile(category.imageFileId).catch((e: Error) =>
+          console.error("[ImageKit] Gagal hapus gambar kategori:", e.message)
+        );
+      }
+
       const result = await CategoryModel.findByIdAndUpdate(id, { deletedAt: new Date() }, { new: true });
       if (!result) {
         return error(res, null, "Category not found");

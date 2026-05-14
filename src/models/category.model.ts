@@ -2,6 +2,8 @@ import mongoose, { Schema } from "mongoose";
 
 export interface ICategory {
   name: string;
+  imageUrl?: string;
+  imageFileId?: string;
   deletedAt: Date | null;
 }
 
@@ -11,6 +13,14 @@ const CategorySchema = new Schema<ICategory>(
       type: String,
       required: true,
       trim: true,
+    },
+    imageUrl: {
+      type: String,
+      default: null,
+    },
+    imageFileId: {
+      type: String,
+      default: null,
     },
     deletedAt: {
       type: Date,
