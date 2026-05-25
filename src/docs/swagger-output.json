@@ -217,14 +217,11 @@
         "summary": "Forgot Password",
         "description": "",
         "responses": {
-          "200": {
-            "description": "OK"
-          },
           "400": {
             "description": "Bad Request"
           },
-          "500": {
-            "description": "Internal Server Error"
+          "429": {
+            "description": "Too Many Requests"
           }
         },
         "requestBody": {
@@ -294,7 +291,7 @@
         "tags": [
           "User"
         ],
-        "summary": "Create a new User (Admin only)",
+        "summary": "Create User",
         "description": "",
         "parameters": [
           {
@@ -310,17 +307,12 @@
             "description": ""
           }
         },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/User"
+                "$ref": "#/components/schemas/CreateUser"
               }
             }
           }
@@ -647,7 +639,7 @@
         "tags": [
           "Product"
         ],
-        "summary": "Create a new Product",
+        "summary": "Create Product",
         "description": "",
         "parameters": [
           {
@@ -663,17 +655,12 @@
             "description": ""
           }
         },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Product"
+                "$ref": "#/components/schemas/CreateProduct"
               }
             }
           }
@@ -941,7 +928,7 @@
         "tags": [
           "Transaction"
         ],
-        "summary": "Create a new Transaction",
+        "summary": "Create Transaction",
         "description": "",
         "parameters": [
           {
@@ -957,17 +944,12 @@
             "description": ""
           }
         },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Transaction"
+                "$ref": "#/components/schemas/CreateTransaction"
               }
             }
           }
