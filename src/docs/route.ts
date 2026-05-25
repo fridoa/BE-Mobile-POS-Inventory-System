@@ -3,9 +3,12 @@ import swaggerUi from "swagger-ui-express";
 import swaggerOutput from "./swagger-output.json";
 
 export default (app: Express) => {
+  const CSS_URL = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui.min.css";
+
   const options = {
     explorer: true,
-    customSiteTitle: "Mobile POS Inventory API", 
+    customSiteTitle: "Mobile POS Inventory API",
+    customCssUrl: CSS_URL,
     customCss: `
       .swagger-ui .topbar { display: none }
       .swagger-ui .info { margin: 50px 0 }
@@ -20,8 +23,7 @@ export default (app: Express) => {
     },
   };
 
-  app.use("/api-docs", swaggerUi.serve);
-  app.get("/api-docs", swaggerUi.setup(swaggerOutput, options));
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerOutput, options));
 
   // JSON endpoint
   app.get("/api-docs.json", (req, res) => {
