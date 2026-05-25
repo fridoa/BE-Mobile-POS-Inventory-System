@@ -11,6 +11,10 @@ const doc = {
   },
   servers: [
     {
+      url: "https://be-mobile-pos-inventory-system.vercel.app/api/v1",
+      description: "Production Server",
+    },
+    {
       url: `http://localhost:${process.env.PORT || 8000}/api/v1`,
       description: "Local Development Server",
     },
