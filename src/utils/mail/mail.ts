@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import ejs from "ejs";
 import path from "path";
+import fs from "fs";
 import { env } from "../env";
 import { ISendMail } from "../interfaces";
 
@@ -23,7 +24,10 @@ export const sendMail = async (option: ISendMail) => {
 };
 
 export const renderMail = async (template: string, data: any): Promise<string> => {
-  const content = path.join(__dirname, `./templates/${template}`);
+  let content = path.join(__dirname, `./templates/${template}`);
+  if (!fs.existsSync(content)) {
+    content = path.join(process.cwd(), `src/utils/mail/templates/${template}`);
+  }
   return await ejs.renderFile(content, data);
 };
 
