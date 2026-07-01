@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { IAuthRequest, IPaginationQuery } from "../utils/interfaces";
 import CategoryModel from "../models/category.model";
+import ProductModel from "../models/product.model";
 import { error, pagination, success } from "../utils/response";
 import uploader from "../utils/uploader";
 
@@ -161,6 +162,12 @@ export default {
     */
     try {
       const { id } = req.params;
+
+      // Cek apakah masih ada produk aktif di kategori ini
+      const activeProductCount = await ProductModel.countDocuments({ category: id, deletedAt: null });
+      if (activeProductCount > 0) {
+        return error(res, null, `Kategori tidak bisa dihapus karena masih memiliki ${activeProductCount} produk aktif`, 400);
+      }
 
       // Hapus gambar dari ImageKit sebelum soft delete
       const category = await CategoryModel.findById(id);

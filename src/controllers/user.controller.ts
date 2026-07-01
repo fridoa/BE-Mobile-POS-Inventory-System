@@ -69,7 +69,7 @@ export default {
     */
     try {
       const { id } = req.params;
-      const result = await UserModel.findById(id);
+      const result = await UserModel.findOne({ _id: id, deletedAt: null });
       if (!result) {
         return error(res, null, "User not found");
       }

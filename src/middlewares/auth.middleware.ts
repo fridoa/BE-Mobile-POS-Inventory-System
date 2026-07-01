@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { changePasswordSchema, loginSchema } from "../validators/auth.validate";
-import { error } from "../utils/response";
+import { error, unauthorized } from "../utils/response";
 import { IAuthRequest } from "../utils/interfaces";
 import { verifyAccessToken } from "../utils/jwt";
 
@@ -17,7 +17,7 @@ const authorization = async (req: IAuthRequest, res: Response, next: NextFunctio
   const authHeader = req.headers?.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return error(res, null, "Unauthorized access");
+    return unauthorized(res, "Unauthorized access");
   }
 
   const token = authHeader.substring(7);
@@ -25,7 +25,7 @@ const authorization = async (req: IAuthRequest, res: Response, next: NextFunctio
   const userData = verifyAccessToken(token);
 
   if (!userData) {
-    return error(res, null, "Invalid or expired token");
+    return unauthorized(res, "Invalid or expired token");
   }
 
   req.user = {

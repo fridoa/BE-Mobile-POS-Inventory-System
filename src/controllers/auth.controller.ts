@@ -174,21 +174,21 @@ export default {
 
       await authService.forgotPasswordRequest(email);
       success(res, null, FORGOT_PASSWORD_SECURITY_MESSAGE);
-    } catch (error: any) {
-      const status = error?.statusCode || error?.status;
+    } catch (err: any) {
+      const status = err?.statusCode || err?.status;
       if (status === 429) {
         return res.status(429).json({
           meta: {
             status: 429,
-            message: error.message,
+            message: err.message,
           },
           data: {
-            remainingSeconds: Math.max(1, Number(error?.remainingSeconds || 0)),
+            remainingSeconds: Math.max(1, Number(err?.remainingSeconds || 0)),
           },
         });
       }
 
-      error(res, error, "Terjadi kesalahan pada server.");
+      error(res, err, "Terjadi kesalahan pada server.");
     }
   },
 

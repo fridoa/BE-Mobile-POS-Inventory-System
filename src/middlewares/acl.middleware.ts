@@ -7,7 +7,7 @@ export default (roles: string[]) => {
     const userRole = req.user?.role;
 
     if (!userRole || !roles.includes(userRole)) {
-      return error(res, null, "Forbidden: You do not have access to this resource");
+      return error(res, null, "Forbidden: You do not have access to this resource", 403);
     }
 
     next();
